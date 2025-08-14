@@ -1,8 +1,9 @@
 import { connect, NatsConnection, StringCodec, Subscription, Msg } from 'nats';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { Task, TaskResult, AgentEvent, Heartbeat, BroadcastMessage, AgentConfig, ProcessingStats } from './types';
+import { Task, TaskResult, AgentEvent, Heartbeat, BroadcastMessage, AgentConfig, ProcessingStats, GeminiConfig } from './types';
 import { ensureAgentDirs, log, calculateBackoffDelay, isValidTask, sleep, formatUptime } from './utils';
+import { GeminiService } from './gemini';
 
 // Environment configuration
 const config: AgentConfig = {
@@ -11,8 +12,14 @@ const config: AgentConfig = {
   sharedDir: process.env.SHARED_DIR || '/shared',
   heartbeatInterval: parseInt(process.env.HEARTBEAT_INTERVAL || '30000'),
   maxRetries: parseInt(process.env.MAX_RETRIES || '10'),
-  logLevel: (process.env.LOG_LEVEL as any) || 'info'
+  logLevel: (process.env.LOG_LEVEL as any) || 'info',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
 };
+
+// Add geminiApiKey only if it exists
+if (process.env.GEMINI_API_KEY) {
+  config.geminiApiKey = process.env.GEMINI_API_KEY;
+}
 
 // String codec for NATS messages
 const sc = StringCodec();
@@ -27,6 +34,9 @@ const stats: ProcessingStats = {
 };
 
 const startTime = Date.now();
+
+// Gemini service instance
+let geminiService: GeminiService | null = null;
 
 /**
  * Process an incoming task and return the result
@@ -44,16 +54,34 @@ async function processTask(data: Uint8Array, agentDir: string): Promise<TaskResu
     const task: Task = taskData;
     await log(`Processing task: ${JSON.stringify(task)}`, config.id, config.sharedDir);
     
-    // Simulate task processing with some async work
-    const processingTime = Math.random() * 100;
-    await sleep(processingTime);
+    let taskResult = `Task ${task.id} processed by ${config.id}`;
+    
+    // Process task with Gemini if available and task type is 'gemini' or 'ai'
+    if (geminiService && (task.type === 'gemini' || task.type === 'ai' || (task.data && typeof task.data === 'object' && (task.data as any).useGemini))) {
+      try {
+        await log(`Using Gemini to process task ${task.id}`, config.id, config.sharedDir);
+        const geminiResponse = await geminiService.processAgentTask(task.data);
+        taskResult = geminiResponse.text;
+        
+        if (geminiResponse.usage) {
+          await log(`Gemini usage - Tokens: ${geminiResponse.usage.totalTokens}`, config.id, config.sharedDir);
+        }
+      } catch (geminiError: any) {
+        await log(`Gemini processing failed: ${geminiError.message}`, config.id, config.sharedDir);
+        taskResult = `Fallback processing: ${taskResult}`;
+      }
+    } else {
+      // Simulate regular task processing
+      const processingTime = Math.random() * 100;
+      await sleep(processingTime);
+    }
     
     const result: TaskResult = {
       agentId: config.id,
       taskId: task.id,
       status: 'completed',
       timestamp: new Date().toISOString(),
-      result: `Task ${task.id} processed by ${config.id}`,
+      result: taskResult,
       processingTime: Date.now() - taskStartTime
     };
     
@@ -281,13 +309,52 @@ async function setupSubscriptions(nc: NatsConnection, agentDir: string): Promise
 }
 
 /**
+ * Initialize Gemini service if API key is available
+ */
+async function initializeGemini(): Promise<void> {
+  if (!config.geminiApiKey) {
+    await log('Gemini API key not provided - running without Gemini capabilities', config.id, config.sharedDir);
+    return;
+  }
+
+  if (!config.geminiModel) {
+    await log('Gemini model not specified - using default gemini-1.5-flash', config.id, config.sharedDir);
+  }
+
+  try {
+    const geminiConfig: GeminiConfig = {
+      apiKey: config.geminiApiKey!,
+      model: config.geminiModel || 'gemini-1.5-flash',
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 2048
+      }
+    };
+
+    geminiService = new GeminiService(geminiConfig, config.id, config.sharedDir);
+    await geminiService.initialize();
+    
+    await log(`Gemini service initialized for ${config.id}`, config.id, config.sharedDir);
+  } catch (error: any) {
+    await log(`Failed to initialize Gemini service: ${error.message}`, config.id, config.sharedDir);
+    await log('Agent will continue without Gemini capabilities', config.id, config.sharedDir);
+    geminiService = null;
+  }
+}
+
+/**
  * Main agent entry point
  */
 async function main(): Promise<void> {
-  await log(`Agent ${config.id} starting with config: ${JSON.stringify(config)}`, config.id, config.sharedDir);
+  await log(`Agent ${config.id} starting with config: ${JSON.stringify({...config, geminiApiKey: config.geminiApiKey ? '***' : undefined})}`, config.id, config.sharedDir);
   
   // Ensure directories exist
   const { agentDir } = await ensureAgentDirs(config.sharedDir, config.id);
+  
+  // Initialize Gemini service
+  await initializeGemini();
   
   // Connect to NATS
   const nc = await connectToNATS();
@@ -301,7 +368,7 @@ async function main(): Promise<void> {
   // Setup graceful shutdown
   setupShutdownHandlers(nc, heartbeatInterval);
   
-  await log(`Agent ${config.id} is running and ready to process tasks`, config.id, config.sharedDir);
+  await log(`Agent ${config.id} is running and ready to process tasks${geminiService ? ' (with Gemini)' : ' (without Gemini)'}`, config.id, config.sharedDir);
 }
 
 // Start the agent

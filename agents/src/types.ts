@@ -51,6 +51,8 @@ export interface AgentConfig {
   heartbeatInterval?: number;
   maxRetries?: number;
   logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  geminiApiKey?: string;
+  geminiModel?: string;
 }
 
 export interface AgentDirs {
@@ -64,4 +66,30 @@ export interface ProcessingStats {
   tasksFailed: number;
   averageProcessingTime: number;
   uptime: number;
+}
+
+export interface GeminiConfig {
+  apiKey: string;
+  model: string;
+  generationConfig?: {
+    temperature?: number;
+    topK?: number;
+    topP?: number;
+    maxOutputTokens?: number;
+  };
+}
+
+export interface GeminiTask {
+  prompt: string;
+  systemInstruction?: string;
+  context?: any;
+}
+
+export interface GeminiResponse {
+  text: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
