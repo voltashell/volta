@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  ai-flock:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-flock-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Example for development with volume mounting (uncomment to use)
+  # ai-flock-dev:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: ai-flock-dev
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     - NODE_ENV=development
+  #   volumes:
+  #     - .:/app
+  #     - /app/node_modules
+  #   command: npm run dev
+  #   restart: unless-stopped
