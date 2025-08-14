@@ -1,18 +1,18 @@
 # AI Flock
 
-A distributed system of AI agents running in isolated Docker containers within a virtual machine, communicating via NATS messaging and sharing data through a secure file system.
+A distributed system of AI agents running in isolated Docker containers, communicating via NATS messaging and sharing data through a secure file system. Provides VM-level isolation using Docker Desktop or traditional VMs.
 
 ## Overview
 
-AI Flock provides strict isolation between AI agents using Docker containers within a VM environment. Each agent operates independently with controlled communication through a NATS message bus and shared storage access through dedicated directories.
+AI Flock provides strict isolation between AI agents using Docker containers with security hardening. Each agent operates independently with controlled communication through a NATS message bus and shared storage access through dedicated directories.
 
 ## Architecture
 
 ### Isolation Strategy
-- **VM Level**: Ubuntu VM via Vagrant provides the base isolation layer
+- **VM Level**: Docker Desktop's Linux VM or traditional VM (Vagrant) provides the base isolation layer
 - **Container Level**: Each agent runs in Docker with security hardening:
-  - Non-root user execution
-  - Read-only root filesystem
+  - Non-root user execution (UID 1001)
+  - Read-only root filesystem with tmpfs mounts
   - Dropped Linux capabilities (CAP_DROP: ALL)
   - Resource limits (CPU, memory, PIDs)
   - Isolated network (agents can only reach NATS)
@@ -21,39 +21,54 @@ AI Flock provides strict isolation between AI agents using Docker containers wit
 - **NATS Messaging**: Lightweight pub/sub for agent coordination
 - **Shared Storage**: Per-agent directories with controlled access
 - **Logging**: Centralized logging to shared directory
+- **TypeScript**: Fully typed agent implementation with strict type checking
 
 ## Quick Start
 
 ### Prerequisites
-- Vagrant (with VirtualBox or Parallels)
+- Docker Desktop (recommended for Apple Silicon)
 - Node.js 18+ (for host machine)
+- Optional: Vagrant + VirtualBox/Parallels for traditional VM
 
-### Launch the System
+### Docker Desktop Approach (Recommended)
+```bash
+# 1. Start NATS and 3 agents
+npm run flock:up
+
+# 2. Test the system
+npm run flock:test
+
+# 3. View logs
+npm run flock:logs
+
+# 4. Monitor system
+npm run flock:status
+```
+
+### Traditional VM Approach
 ```bash
 # 1. Start VM and install Docker
 npm run vm:up
 
 # 2. Build agent image
-npm run vm:agents:build  
+npm run vm:agents:build
 
 # 3. Start NATS and 3 agents
 npm run vm:agents
 
 # 4. Test the system
 npm run vm:agents:test
-
-# 5. View logs
-npm run vm:agents:logs
 ```
 
 ## Project Structure
 
 ```
 ai-flock/
-├── agents/                 # Agent implementation
-│   ├── index.js           # Agent code with NATS integration
-│   ├── Dockerfile         # Hardened container image
-│   └── package.json       # Agent dependencies
+├── agents/                 # TypeScript agent implementation
+│   ├── index.ts           # Agent code with NATS integration
+│   ├── tsconfig.json      # TypeScript configuration
+│   ├── Dockerfile         # Multi-stage build container
+│   └── package.json       # Agent dependencies and scripts
 ├── vm/                    # VM orchestration
 │   └── docker-compose.yml # NATS + agents configuration  
 ├── shared/                # Shared storage (synced to VM)
@@ -67,21 +82,65 @@ ai-flock/
 ├── aws/                   # Cloud deployment (ECS Fargate)
 │   ├── cloudformation.yaml # Infrastructure as code
 │   └── scripts/          # Deployment automation
-└── Vagrantfile           # VM configuration
+├── docker-compose.local.yml # Local Docker Desktop setup
+└── Vagrantfile           # Traditional VM configuration
 ```
 
 ## Commands
 
-### VM Management
+### Docker Desktop Commands (Primary)
 ```bash
+# System Management
+npm run flock:up          # Start NATS + 3 agents (builds if needed)
+npm run flock:down        # Stop all services
+npm run flock:restart     # Restart everything
+npm run flock:status      # Show container status
+npm run flock:stats       # Show resource usage
+npm run flock:reset       # Complete cleanup (removes volumes)
+
+# Testing & Monitoring
+npm run flock:test        # Run test client to send tasks
+npm run flock:logs        # View all logs in real-time
+npm run flock:monitor     # Live system dashboard
+npm run flock:shared      # Check shared directories
+
+# Individual Service Management
+npm run flock:logs:agent1 # Agent 1 logs only
+npm run flock:logs:agent2 # Agent 2 logs only  
+npm run flock:logs:agent3 # Agent 3 logs only
+npm run flock:logs:nats   # NATS logs only
+
+# Shell Access
+npm run flock:shell:agent1  # SSH into agent-1 container
+npm run flock:shell:agent2  # SSH into agent-2 container
+npm run flock:shell:agent3  # SSH into agent-3 container
+npm run flock:shell:nats    # SSH into NATS container
+
+# Scaling
+npm run flock:scale       # Scale to 6 agents total (2 of each type)
+```
+
+### Agent Development
+```bash
+# TypeScript Development
+npm run agents:build      # Compile TypeScript agents
+npm run agents:dev        # Run agent with ts-node (development)
+npm run agents:type-check # Check types without compilation
+npm run agents:clean      # Clean compiled files
+
+# Build and test cycle
+npm run agents:build && npm run flock:restart && npm run flock:test
+```
+
+### Traditional VM Commands
+```bash
+# VM Management
 npm run vm:up          # Start and provision VM
 npm run vm:ssh         # SSH into VM  
 npm run vm:down        # Stop VM
 npm run vm:destroy     # Destroy VM
-```
 
-### Agent Management
-```bash
+# Agent Management (inside VM)
 npm run vm:agents            # Start NATS + 3 agents
 npm run vm:agents:build      # Build agent Docker image
 npm run vm:agents:down       # Stop all services
@@ -89,20 +148,26 @@ npm run vm:agents:logs       # View service logs
 npm run vm:agents:test       # Publish test tasks
 ```
 
-### Manual Operations (inside VM)
-```bash
-# SSH into VM
-vagrant ssh && cd /vagrant
-
-# Agent lifecycle
-./scripts/manage-agents.sh up 5      # Start 5 agents
-./scripts/manage-agents.sh status    # View running containers
-./scripts/manage-agents.sh logs      # Stream logs
-./scripts/manage-agents.sh test      # Send test tasks
-./scripts/manage-agents.sh down      # Stop all services
-```
-
 ## Agent Contract
+
+### TypeScript Interfaces
+```typescript
+interface Task {
+  id: string;
+  type: string;
+  data: any;
+  timestamp?: string;
+}
+
+interface TaskResult {
+  agentId: string;
+  taskId: string;
+  status: 'completed' | 'failed' | 'processing';
+  timestamp: string;
+  result: string;
+  error?: string;
+}
+```
 
 ### Environment Variables
 - `AGENT_ID`: Unique agent identifier
@@ -121,6 +186,29 @@ vagrant ssh && cd /vagrant
 - `/shared/common/`: Shared read-only resources
 - `/shared/logs/<id>.log`: Agent log files
 
+## Deployment Options
+
+### 1. Docker Desktop (Recommended)
+**Best for:** Development, testing, Apple Silicon Macs
+- ✅ Easy setup and management
+- ✅ Good isolation via Docker Desktop's VM
+- ✅ Excellent performance on Apple Silicon
+- ✅ Built-in monitoring and debugging tools
+
+### 2. Traditional VM (Vagrant)
+**Best for:** Maximum isolation, production-like testing
+- ✅ Hardware-level VM isolation
+- ✅ Full control over VM configuration
+- ❌ Requires VirtualBox/VMware compatibility
+- ❌ Higher resource overhead
+
+### 3. AWS ECS Fargate
+**Best for:** Production deployment, cloud scaling
+- ✅ Serverless container orchestration
+- ✅ Auto-scaling and load balancing
+- ✅ Enterprise-grade security and compliance
+- See `aws/README.md` for deployment guide
+
 ## Security Features
 
 ### Container Security
@@ -135,125 +223,139 @@ vagrant ssh && cd /vagrant
 - **No direct agent-to-agent**: Agents can only communicate via NATS
 - **No exposed ports**: Agent containers have no published ports
 
-### Advanced Isolation (Optional)
-- **gVisor**: VM-like isolation using `runsc` runtime
-- **Kata Containers**: Hardware virtualization for stronger boundaries
-- **User namespace remapping**: Additional UID/GID isolation
+### TypeScript Security
+- **Strict typing**: Prevents runtime type errors
+- **Input validation**: Typed interfaces for all messages
+- **Error boundaries**: Comprehensive error handling with types
 
-## Observability
+## Development Workflow
 
-### Logging
-- **Centralized**: All agents log to `/shared/logs/<agent-id>.log`
-- **Docker logs**: Standard container logging via `docker logs`
-- **Structured**: JSON-formatted log entries with timestamps
+### Adding New Agent Types
+1. Extend TypeScript interfaces in `agents/index.ts`
+2. Implement new message handlers with proper typing
+3. Build and test: `npm run agents:build && npm run flock:restart`
+4. Validate with: `npm run flock:test`
 
-### Monitoring
-- **Health checks**: Container-level health monitoring
-- **Heartbeats**: Agent heartbeats every 30 seconds to NATS
-- **Resource usage**: Container resource consumption tracking
-
-### Optional Metrics
-- **Prometheus**: Node exporter for VM-level metrics
-- **NATS monitoring**: Built-in NATS metrics endpoint (port 8222)
-
-## Testing & Validation
-
-### Isolation Tests
-- **Network isolation**: Verify agents cannot communicate except via NATS
-- **File system isolation**: Confirm agents cannot access other agent directories
-- **Resource limits**: Validate cgroup constraints are enforced
-
-### Functionality Tests
-- **Message passing**: Publish tasks and verify agent processing
-- **File operations**: Test shared directory read/write operations  
-- **Error handling**: Verify graceful handling of NATS disconnection
-
-### Performance Tests
-- **Resource stress**: Stress individual agents to test isolation
-- **Scaling**: Test system behavior with increased agent count
-- **Throughput**: Measure message processing rates
-
-## Cloud Deployment
-
-For production deployment on AWS ECS Fargate, see `aws/README.md`:
-
+### Debugging Agents
 ```bash
-# Deploy to AWS
-cd aws/scripts && ./deploy.sh
+# View specific agent logs
+npm run flock:logs:agent1
 
-# Monitor deployment  
-./monitor.sh
+# Access agent shell for debugging
+npm run flock:shell:agent1
 
-# Clean up
-./cleanup.sh
+# Check TypeScript compilation
+npm run agents:type-check
+
+# Monitor system resources
+npm run flock:stats
 ```
 
-## Threat Model
-
-### Assumptions
-- **VM boundary**: Host OS is trusted; VM provides outer boundary
-- **Container escape**: Docker provides process isolation; additional runtimes (gVisor/Kata) for stronger guarantees
-- **Shared storage**: File system permissions enforce per-agent access controls
-
-### Mitigations
-- **Defense in depth**: Multiple isolation layers (VM → container → security features)
-- **Principle of least privilege**: Minimal capabilities and permissions
-- **Resource constraints**: Prevent resource exhaustion attacks
-- **Network segmentation**: Controlled communication channels only
-
-## Development
-
-### Adding New Agents
-1. Extend agent code in `agents/index.js`
-2. Update Docker image: `npm run vm:agents:build`
-3. Scale agents: `./scripts/manage-agents.sh up N`
-
-### Customizing Agent Behavior
-- **Environment variables**: Configure via docker-compose environment
-- **Shared libraries**: Place in `/shared/common/` directory
-- **Configuration files**: Agent-specific config in `/shared/agents/<id>/`
-
-### Debugging
+### Testing Isolation
 ```bash
-# Agent logs
-npm run vm:agents:logs
+# Test network isolation
+npm run flock:shell:agent1
+# Try: ping agent-2  # Should fail
+# Try: nc -z nats 4222  # Should succeed
 
-# Individual agent
-vagrant ssh -c "docker logs agent-1"
+# Test file system isolation
+ls -la /shared/agents/  # Should only see own directory + others (read-only)
+
+# Test resource limits
+npm run flock:stats  # Monitor CPU/memory usage
+```
+
+## Monitoring & Observability
+
+### Real-time Monitoring
+```bash
+npm run flock:monitor     # Live dashboard
+npm run flock:stats       # Resource usage
+npm run flock:status      # Container health
+```
+
+### Log Analysis
+```bash
+# Centralized logging
+tail -f shared/logs/agent-1.log
+
+# Docker logs
+npm run flock:logs
 
 # NATS monitoring
-vagrant ssh -c "curl http://localhost:8222/varz"
+curl http://localhost:8222/varz
 ```
+
+### Health Checks
+- **Container health**: Built-in Docker health checks
+- **Agent heartbeats**: 30-second NATS heartbeat messages
+- **NATS monitoring**: HTTP endpoint at port 8222
 
 ## Performance Tuning
 
 ### Resource Allocation
-- **CPU limits**: Adjust in `vm/docker-compose.yml`
+- **CPU limits**: Adjust in `docker-compose.local.yml`
 - **Memory limits**: Configure per-agent memory allocation
-- **Storage**: Monitor EFS/shared directory performance
+- **Storage**: Monitor shared directory performance
 
-### Scaling Considerations
-- **Agent count**: Optimal 3-10 agents per VM (2GB RAM)
-- **NATS throughput**: Monitor message queue depth
-- **VM resources**: Scale VM specs with agent count
+### Scaling
+```bash
+# Scale agents horizontally
+npm run flock:scale
+
+# Custom scaling
+docker-compose -f docker-compose.local.yml up -d --scale agent-1=5
+```
 
 ## Troubleshooting
 
 ### Common Issues
 
+**TypeScript compilation errors**
+- Run: `npm run agents:type-check`
+- Fix type errors in `agents/index.ts`
+- Rebuild: `npm run agents:build`
+
 **Agents fail to connect to NATS**
-- Check NATS service health: `docker logs nats`
-- Verify network connectivity in VM
-- Confirm Service Discovery DNS resolution
+- Check: `npm run flock:logs:nats`
+- Verify: `docker inspect nats`
+- Network: `docker network ls`
 
-**Shared directory permissions**
-- Verify `/shared` mount in containers
-- Check file ownership: `ls -la /shared/`
-- Confirm vagrant user permissions
+**Container startup failures**
+- Check: `npm run flock:status`
+- Logs: `npm run flock:logs:agent1`
+- Build: `docker images | grep ai-agent`
 
-**Container startup failures**  
-- Check Docker image build: `docker images`
-- Review container logs: `docker logs <container>`
-- Verify resource constraints aren't exceeded
+**Docker Desktop issues**
+- Restart Docker Desktop
+- Check VM resources in Docker Desktop settings
+- Clear containers: `npm run flock:reset`
 
-For detailed troubleshooting, see the logs in `/shared/logs/` and use `docker inspect` for container configuration details.
+### Debugging Commands
+```bash
+# System diagnostics
+docker system info
+docker system df
+
+# Network debugging
+docker network inspect ai-flock_bus
+
+# Container inspection
+docker inspect agent-1 | jq '.Config.Env'
+```
+
+## Migration Guide
+
+### From VM to Docker Desktop
+1. Stop VM: `npm run vm:down`
+2. Start Docker Desktop: `npm run flock:up`
+3. Test: `npm run flock:test`
+
+### From JavaScript to TypeScript
+The agents are now fully TypeScript with:
+- Strict type checking
+- Comprehensive interfaces
+- Better error handling
+- Multi-stage Docker builds
+
+All existing functionality remains the same with enhanced type safety.

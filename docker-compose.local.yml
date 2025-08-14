@@ -98,6 +98,28 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  monitor:
+    build:
+      context: ./monitor
+      dockerfile: Dockerfile
+    image: ai-flock-monitor:latest
+    container_name: monitor
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - bus
+    depends_on:
+      - nats
+      - agent-1
+      - agent-2
+      - agent-3
+    user: "0:0"  # Run as root to access Docker socket
+    security_opt:
+      - no-new-privileges:false  # Allow privileges to access Docker
+
 networks:
   bus:
     driver: bridge
