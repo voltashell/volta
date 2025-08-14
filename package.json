@@ -13,7 +13,17 @@
     "drun": "docker run -p 3000:3000 ai-flock",
     "dup": "docker-compose up -d",
     "ddown": "docker-compose down",
-    "dlogs": "docker-compose logs -f"
+    "dlogs": "docker-compose logs -f",
+    "vm:up": "vagrant up",
+    "vm:ssh": "vagrant ssh",
+    "vm:provision": "vagrant provision",
+    "vm:destroy": "vagrant destroy -f",
+    "vm:agents": "vagrant ssh -c 'cd /vagrant && ./scripts/manage-agents.sh up'",
+    "vm:agents:build": "vagrant ssh -c 'cd /vagrant && ./scripts/manage-agents.sh build'",
+    "vm:agents:down": "vagrant ssh -c 'cd /vagrant && ./scripts/manage-agents.sh down'",
+    "vm:agents:logs": "vagrant ssh -c 'cd /vagrant && ./scripts/manage-agents.sh logs'",
+    "vm:agents:test": "vagrant ssh -c 'cd /vagrant && ./scripts/manage-agents.sh test'",
+    "vm:down": "vagrant halt"
   },
   "keywords": [],
   "author": "",

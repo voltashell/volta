@@ -1,0 +1,12 @@
+{
+  "name": "ai-agent",
+  "version": "1.0.0",
+  "description": "AI Agent for the flock system",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "nats": "^2.15.0"
+  }
+}

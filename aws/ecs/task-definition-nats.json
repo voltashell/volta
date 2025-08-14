@@ -1,0 +1,40 @@
+{
+  "family": "ai-flock-nats",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "nats",
+      "image": "nats:2.10-alpine",
+      "essential": true,
+      "command": ["-m", "8222", "-js"],
+      "portMappings": [
+        {
+          "containerPort": 4222,
+          "protocol": "tcp"
+        },
+        {
+          "containerPort": 8222,
+          "protocol": "tcp"
+        }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8222/healthz || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 10
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/ai-flock-nats",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "nats"
+        }
+      }
+    }
+  ]
+}
