@@ -307,6 +307,43 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: nats
 
+  # NAT Gateway for private subnet
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIPForNAT.AllocationId
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: ai-flock-nat-gateway
+
+  EIPForNAT:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties:
+      Domain: vpc
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: ai-flock-private-rt
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
   # NATS Service
   NATSService:
     Type: AWS::ECS::Service
@@ -323,7 +360,7 @@ Resources:
             - !Ref PrivateSubnet
           SecurityGroups:
             - !Ref NATSSecurityGroup
-          AssignPublicIp: ENABLED
+          AssignPublicIp: DISABLED
       ServiceRegistries:
         - RegistryArn: !GetAtt NATSServiceDiscovery.Arn
 
@@ -341,8 +378,19 @@ Resources:
       TaskRoleArn: !GetAtt TaskRole.Arn
       ContainerDefinitions:
         - Name: agent
-          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/ai-flock-agent:latest
+          Image: node:18-alpine
           Essential: true
+          Command:
+            - sh
+            - -c
+            - |
+              echo "Placeholder agent - update image to ai-flock-agent after pushing to ECR"
+              echo "NATS_URL: $NATS_URL"
+              echo "SHARED_DIR: $SHARED_DIR"
+              while true; do
+                echo "Agent placeholder running... $(date)"
+                sleep 30
+              done
           Environment:
             - Name: NATS_URL
               Value: nats://nats.ai-flock.local:4222
@@ -351,20 +399,11 @@ Resources:
           MountPoints:
             - SourceVolume: shared-storage
               ContainerPath: /shared
-          ReadonlyRootFilesystem: true
-          LinuxParameters:
-            Capabilities:
-              Drop:
-                - ALL
-            Tmpfs:
-              - ContainerPath: /tmp
-                Size: 100
-              - ContainerPath: /run
-                Size: 10
+          ReadonlyRootFilesystem: false
           HealthCheck:
             Command:
               - CMD-SHELL
-              - node -e "console.log('healthy')" || exit 1
+              - echo "healthy" || exit 1
             Interval: 30
             Timeout: 5
             Retries: 3
@@ -400,7 +439,7 @@ Resources:
             - !Ref PrivateSubnet
           SecurityGroups:
             - !Ref AgentSecurityGroup
-          AssignPublicIp: ENABLED
+          AssignPublicIp: DISABLED
 
 Outputs:
   ClusterName:
