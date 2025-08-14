@@ -1,0 +1,86 @@
+{
+  "family": "ai-flock-agent",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "taskRoleArn": "${TASK_ROLE_ARN}",
+  "executionRoleArn": "${EXECUTION_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "agent",
+      "image": "${ECR_REPOSITORY_URI}:latest",
+      "essential": true,
+      "environment": [
+        {
+          "name": "AGENT_ID",
+          "value": "${AGENT_ID}"
+        },
+        {
+          "name": "NATS_URL",
+          "value": "${NATS_URL}"
+        },
+        {
+          "name": "SHARED_DIR",
+          "value": "/shared"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "shared-storage",
+          "containerPath": "/shared"
+        }
+      ],
+      "readonlyRootFilesystem": true,
+      "linuxParameters": {
+        "capabilities": {
+          "drop": ["ALL"]
+        },
+        "tmpfs": [
+          {
+            "containerPath": "/tmp",
+            "size": 100
+          },
+          {
+            "containerPath": "/run",
+            "size": 10
+          }
+        ]
+      },
+      "ulimits": [
+        {
+          "name": "nofile",
+          "softLimit": 1024,
+          "hardLimit": 2048
+        }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "node -e \"console.log('healthy')\" || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 10
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/ai-flock-agent",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "agent"
+        }
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "shared-storage",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "${EFS_FILE_SYSTEM_ID}",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "${EFS_ACCESS_POINT_ID}"
+        }
+      }
+    }
+  ]
+}
