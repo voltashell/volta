@@ -54,11 +54,27 @@ aws ecr describe-repositories --repository-names ai-flock-agent --region $AWS_RE
 echo_info "Logging in to ECR..."
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
-# Tag and push image
+# Tag and push image with retry logic
 ECR_URI="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ai-flock-agent"
 echo_info "Pushing image to ECR: $ECR_URI"
 docker tag ai-flock-agent:latest $ECR_URI:latest
-docker push $ECR_URI:latest
+
+# Push with retry logic
+echo_info "Pushing Docker image (this may take a few minutes)..."
+for attempt in {1..3}; do
+    echo_info "Push attempt $attempt/3..."
+    if docker push $ECR_URI:latest; then
+        echo_info "Docker push successful!"
+        break
+    else
+        if [ $attempt -eq 3 ]; then
+            echo_error "Docker push failed after 3 attempts"
+            exit 1
+        fi
+        echo_warn "Push attempt $attempt failed, retrying in 10 seconds..."
+        sleep 10
+    fi
+done
 
 cd ..
 
