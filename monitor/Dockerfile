@@ -1,6 +1,9 @@
 # Multi-stage build for TypeScript
 FROM node:18-alpine AS builder
 
+# Install Docker CLI to monitor containers
+RUN apk add --no-cache docker-cli
+
 # Set working directory
 WORKDIR /app
 
@@ -19,11 +22,10 @@ RUN npm run build
 # Production stage
 FROM node:18-alpine
 
-# Create non-root user
-RUN addgroup -g 1001 agent && \
-    adduser -D -u 1001 -G agent agent
+# Install Docker CLI and curl to monitor containers
+RUN apk add --no-cache docker-cli curl
 
-# Set working directory
+# Create app directory
 WORKDIR /app
 
 # Copy package files
@@ -35,16 +37,19 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built JavaScript from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Create necessary directories with proper permissions
-RUN mkdir -p /shared /tmp /run && \
-    chown -R agent:agent /app /tmp /run
+# Copy static files
+COPY public/ ./public/
 
-# Switch to non-root user
-USER agent
+# Create directories with proper permissions
+RUN mkdir -p /tmp /run && \
+    chmod 755 /app
+
+# Expose port
+EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "console.log('healthy')" || exit 1
+  CMD curl -f http://localhost:3001/ || exit 1
 
-# Run the agent
-CMD ["node", "dist/index.js"]
+# Start the server
+CMD ["node", "dist/server.js"]
