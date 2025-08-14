@@ -25,7 +25,12 @@ const io = new SocketIOServer<
   ServerToClientEvents,
   InterServerEvents,
   SocketData
->(server);
+>(server, {
+  cors: {
+    origin: ["http://localhost:3000", "http://localhost:3001"],
+    methods: ["GET", "POST"]
+  }
+});
 
 const PORT = process.env.PORT || 3001;
 
@@ -169,23 +174,24 @@ function executeCommand(commandData: CommandData, socket: MonitorSocket): void {
   if (target === 'host') {
     // Execute command directly on host
     cmdArgs = ['sh', '-c', command];
-    cmdProcess = spawn(cmdArgs[0], cmdArgs.slice(1));
+    cmdProcess = spawn(cmdArgs[0]!, cmdArgs.slice(1));
   } else if (target === 'all') {
     // Execute command on all agent containers
-    const containers = ['agent-1', 'agent-2', 'agent-3'];
+    const containers = ['agent-1', 'agent-2', 'agent-3'] as const;
     containers.forEach(container => {
       const individualCommand: CommandData = {
         command,
-        target: container as any,
+        target: container,
         timestamp
       };
       executeCommand(individualCommand, socket);
     });
     return;
   } else {
-    // Execute command in specific container
-    cmdArgs = ['docker', 'exec', target, 'sh', '-c', command];
-    cmdProcess = spawn(cmdArgs[0], cmdArgs.slice(1));
+    // Execute command in specific container using bash for agents
+    const shell = target.startsWith('agent-') ? '/bin/bash' : 'sh';
+    cmdArgs = ['docker', 'exec', target, shell, '-c', command];
+    cmdProcess = spawn(cmdArgs[0]!, cmdArgs.slice(1));
   }
 
   let output = '';
@@ -204,10 +210,14 @@ function executeCommand(commandData: CommandData, socket: MonitorSocket): void {
       command,
       target,
       output: output || 'No output',
-      error: errorOutput || undefined,
       timestamp: new Date().toISOString(),
       exitCode: code || 0
     };
+
+    // Only include error if there is actual error output
+    if (errorOutput) {
+      result.error = errorOutput;
+    }
 
     socket.emit('command-result', result);
   });
@@ -217,9 +227,9 @@ function executeCommand(commandData: CommandData, socket: MonitorSocket): void {
       command,
       target,
       output: '',
-      error: err.message,
       timestamp: new Date().toISOString(),
-      exitCode: 1
+      exitCode: 1,
+      error: err.message
     };
 
     socket.emit('command-result', result);

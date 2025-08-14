@@ -21,7 +21,10 @@ services:
     build:
       context: ./agents
       dockerfile: Dockerfile
-    image: ai-agent:latest
+      args:
+        - AGENT_UID=1001
+        - AGENT_GID=1001
+    image: ai-agent-1:latest
     container_name: agent-1
     restart: unless-stopped
     depends_on:
@@ -31,6 +34,8 @@ services:
       - AGENT_ID=agent-1
       - NATS_URL=nats://nats:4222
       - SHARED_DIR=/shared
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-1.5-flash
     volumes:
       - ./shared:/shared
     networks:
@@ -39,6 +44,7 @@ services:
     tmpfs:
       - /tmp
       - /run
+      - /home/agent:uid=1001,gid=1001
     cap_drop:
       - ALL
     security_opt:
@@ -47,8 +53,11 @@ services:
   agent-2:
     build:
       context: ./agents
-      dockerfile: Dockerfile  
-    image: ai-agent:latest
+      dockerfile: Dockerfile
+      args:
+        - AGENT_UID=1002
+        - AGENT_GID=1002
+    image: ai-agent-2:latest
     container_name: agent-2
     restart: unless-stopped
     depends_on:
@@ -58,6 +67,8 @@ services:
       - AGENT_ID=agent-2
       - NATS_URL=nats://nats:4222
       - SHARED_DIR=/shared
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-1.5-flash
     volumes:
       - ./shared:/shared
     networks:
@@ -66,6 +77,7 @@ services:
     tmpfs:
       - /tmp
       - /run
+      - /home/agent:uid=1002,gid=1002
     cap_drop:
       - ALL
     security_opt:
@@ -75,7 +87,10 @@ services:
     build:
       context: ./agents
       dockerfile: Dockerfile
-    image: ai-agent:latest
+      args:
+        - AGENT_UID=1003
+        - AGENT_GID=1003
+    image: ai-agent-3:latest
     container_name: agent-3
     restart: unless-stopped
     depends_on:
@@ -85,6 +100,8 @@ services:
       - AGENT_ID=agent-3
       - NATS_URL=nats://nats:4222
       - SHARED_DIR=/shared
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-1.5-flash
     volumes:
       - ./shared:/shared
     networks:
@@ -93,6 +110,7 @@ services:
     tmpfs:
       - /tmp
       - /run
+      - /home/agent:uid=1003,gid=1003
     cap_drop:
       - ALL
     security_opt:

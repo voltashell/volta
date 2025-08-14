@@ -65,7 +65,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            flex: 1;
+            height: calc(100vh - 260px);
             gap: 1px;
             background: #404040;
         }
@@ -119,9 +119,11 @@
             flex: 1;
             padding: 8px;
             overflow-y: auto;
+            overflow-x: hidden;
             font-size: 11px;
             line-height: 1.4;
             background: #1a1a1a;
+            min-height: 0;
         }
 
         .terminal-input-area {
@@ -201,6 +203,8 @@
             background: #1e1e1e;
             display: flex;
             flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .container-header {
@@ -265,9 +269,11 @@
             flex: 1;
             padding: 8px;
             overflow-y: auto;
+            overflow-x: hidden;
             font-size: 11px;
             line-height: 1.4;
             background: #1a1a1a;
+            min-height: 0;
         }
 
         .log-entry {
@@ -356,53 +362,82 @@
         </div>
     </div>
 
-    <div class="container-grid">
-        <div class="container-window agent-1" id="agent-1-window">
-            <div class="container-header">
-                <div class="container-name">Agent 1</div>
-                <div class="container-controls">
-                    <button class="btn restart" onclick="restartContainer('agent-1')">Restart</button>
-                    <button class="btn" onclick="clearLogs('agent-1')">Clear</button>
+    <div class="main-content">
+        <div class="container-grid">
+            <div class="container-window agent-1" id="agent-1-window">
+                <div class="container-header">
+                    <div class="container-name">Agent 1</div>
+                    <div class="container-controls">
+                        <button class="btn restart" onclick="restartContainer('agent-1')">Restart</button>
+                        <button class="btn" onclick="clearLogs('agent-1')">Clear</button>
+                    </div>
                 </div>
+                <div class="container-status" id="agent-1-status">Status: Unknown</div>
+                <div class="log-window" id="agent-1-logs"></div>
             </div>
-            <div class="container-status" id="agent-1-status">Status: Unknown</div>
-            <div class="log-window" id="agent-1-logs"></div>
+
+            <div class="container-window agent-2" id="agent-2-window">
+                <div class="container-header">
+                    <div class="container-name">Agent 2</div>
+                    <div class="container-controls">
+                        <button class="btn restart" onclick="restartContainer('agent-2')">Restart</button>
+                        <button class="btn" onclick="clearLogs('agent-2')">Clear</button>
+                    </div>
+                </div>
+                <div class="container-status" id="agent-2-status">Status: Unknown</div>
+                <div class="log-window" id="agent-2-logs"></div>
+            </div>
+
+            <div class="container-window agent-3" id="agent-3-window">
+                <div class="container-header">
+                    <div class="container-name">Agent 3</div>
+                    <div class="container-controls">
+                        <button class="btn restart" onclick="restartContainer('agent-3')">Restart</button>
+                        <button class="btn" onclick="clearLogs('agent-3')">Clear</button>
+                    </div>
+                </div>
+                <div class="container-status" id="agent-3-status">Status: Unknown</div>
+                <div class="log-window" id="agent-3-logs"></div>
+            </div>
+
+            <div class="container-window nats" id="nats-window">
+                <div class="container-header">
+                    <div class="container-name">NATS Server</div>
+                    <div class="container-controls">
+                        <button class="btn restart" onclick="restartContainer('nats')">Restart</button>
+                        <button class="btn" onclick="clearLogs('nats')">Clear</button>
+                    </div>
+                </div>
+                <div class="container-status" id="nats-status">Status: Unknown</div>
+                <div class="log-window" id="nats-logs"></div>
+            </div>
         </div>
 
-        <div class="container-window agent-2" id="agent-2-window">
-            <div class="container-header">
-                <div class="container-name">Agent 2</div>
-                <div class="container-controls">
-                    <button class="btn restart" onclick="restartContainer('agent-2')">Restart</button>
-                    <button class="btn" onclick="clearLogs('agent-2')">Clear</button>
+        <div class="terminal-panel">
+            <div class="terminal-header">
+                <div class="terminal-title">🖥️ Terminal</div>
+                <div class="terminal-controls">
+                    <label for="terminal-target" style="color: #888; font-size: 11px;">Target:</label>
+                    <select id="terminal-target" class="terminal-target">
+                        <option value="host">Host</option>
+                        <option value="all">All Agents</option>
+                        <option value="agent-1">Agent 1</option>
+                        <option value="agent-2">Agent 2</option>
+                        <option value="agent-3">Agent 3</option>
+                        <option value="nats">NATS</option>
+                    </select>
+                    <button class="btn" onclick="clearTerminal()">Clear</button>
+                    <button class="btn" onclick="openShell()">Shell</button>
                 </div>
             </div>
-            <div class="container-status" id="agent-2-status">Status: Unknown</div>
-            <div class="log-window" id="agent-2-logs"></div>
-        </div>
-
-        <div class="container-window agent-3" id="agent-3-window">
-            <div class="container-header">
-                <div class="container-name">Agent 3</div>
-                <div class="container-controls">
-                    <button class="btn restart" onclick="restartContainer('agent-3')">Restart</button>
-                    <button class="btn" onclick="clearLogs('agent-3')">Clear</button>
+            <div class="terminal-content">
+                <div class="terminal-output" id="terminal-output"></div>
+                <div class="terminal-input-area">
+                    <div class="terminal-prompt">$</div>
+                    <input type="text" class="terminal-input" id="terminal-input" placeholder="Enter command..." autocomplete="off">
+                    <button class="terminal-send" id="terminal-send" onclick="sendCommand()">Send</button>
                 </div>
             </div>
-            <div class="container-status" id="agent-3-status">Status: Unknown</div>
-            <div class="log-window" id="agent-3-logs"></div>
-        </div>
-
-        <div class="container-window nats" id="nats-window">
-            <div class="container-header">
-                <div class="container-name">NATS Server</div>
-                <div class="container-controls">
-                    <button class="btn restart" onclick="restartContainer('nats')">Restart</button>
-                    <button class="btn" onclick="clearLogs('nats')">Clear</button>
-                </div>
-            </div>
-            <div class="container-status" id="nats-status">Status: Unknown</div>
-            <div class="log-window" id="nats-logs"></div>
         </div>
     </div>
 
@@ -418,6 +453,9 @@
             'agent-3': 0,
             'nats': 0
         };
+        
+        let commandHistory = [];
+        let historyIndex = -1;
 
         // Connection status
         socket.on('connect', () => {
@@ -488,6 +526,11 @@
             }
         });
 
+        // Handle command results
+        socket.on('command-result', (result) => {
+            displayCommandResult(result);
+        });
+
         // Utility functions
         function getLogClass(logText) {
             const text = logText.toLowerCase();
@@ -554,6 +597,179 @@
                     socket.connect();
                 }
             }, 5000);
+        });
+
+        // Terminal functions
+        function sendCommand() {
+            const input = document.getElementById('terminal-input');
+            const target = document.getElementById('terminal-target').value;
+            const command = input.value.trim();
+            
+            if (!command) return;
+            
+            // Add to history
+            commandHistory.unshift(command);
+            if (commandHistory.length > 50) {
+                commandHistory.pop();
+            }
+            historyIndex = -1;
+            
+            // Display command in terminal
+            displayCommand(command, target);
+            
+            // Send command to server
+            socket.emit('execute-command', {
+                command: command,
+                target: target,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Clear input
+            input.value = '';
+            
+            // Disable send button temporarily
+            const sendButton = document.getElementById('terminal-send');
+            sendButton.disabled = true;
+            setTimeout(() => {
+                sendButton.disabled = false;
+            }, 500);
+        }
+
+        function displayCommand(command, target) {
+            const output = document.getElementById('terminal-output');
+            const entry = document.createElement('div');
+            entry.className = 'command-entry';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `
+                <div class="command-input">
+                    <span class="command-timestamp">[${timestamp}]</span> 
+                    <strong>${escapeHtml(target)}$</strong> ${escapeHtml(command)}
+                </div>
+            `;
+            
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function displayCommandResult(result) {
+            const output = document.getElementById('terminal-output');
+            const entries = output.getElementsByClassName('command-entry');
+            const lastEntry = entries[entries.length - 1];
+            
+            if (lastEntry) {
+                const resultDiv = document.createElement('div');
+                
+                if (result.output && result.output !== 'No output') {
+                    const outputDiv = document.createElement('div');
+                    outputDiv.className = 'command-output';
+                    outputDiv.textContent = result.output;
+                    resultDiv.appendChild(outputDiv);
+                }
+                
+                if (result.error) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'command-error';
+                    errorDiv.textContent = result.error;
+                    resultDiv.appendChild(errorDiv);
+                }
+                
+                if (!result.output || result.output === 'No output') {
+                    if (!result.error) {
+                        const emptyDiv = document.createElement('div');
+                        emptyDiv.className = 'command-output';
+                        emptyDiv.textContent = '(no output)';
+                        resultDiv.appendChild(emptyDiv);
+                    }
+                }
+                
+                lastEntry.appendChild(resultDiv);
+            }
+            
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearTerminal() {
+            const output = document.getElementById('terminal-output');
+            output.innerHTML = '';
+        }
+
+        function openShell() {
+            const target = document.getElementById('terminal-target').value;
+            
+            if (target === 'all') {
+                alert('Shell access not available for "All Agents". Please select a specific agent.');
+                return;
+            }
+            
+            if (target === 'host') {
+                alert('Host shell access not implemented in web interface. Use terminal commands instead.');
+                return;
+            }
+            
+            // Display shell information
+            const output = document.getElementById('terminal-output');
+            const entry = document.createElement('div');
+            entry.className = 'command-entry';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const shellType = target.startsWith('agent-') ? 'bash' : 'sh';
+            
+            entry.innerHTML = `
+                <div class="command-input">
+                    <span class="command-timestamp">[${timestamp}]</span> 
+                    <strong>Shell Access for ${target}</strong>
+                </div>
+                <div class="command-output">
+                    To access ${target} shell directly, use one of these methods:
+                    
+                    1. Terminal command: npm run flock:shell:${target.replace('-', '')}
+                    2. Docker command: docker exec -it ${target} /${shellType}
+                    3. Use the terminal above to send individual commands
+                    
+                    The container is running with ${shellType} shell support.
+                </div>
+            `;
+            
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // Terminal input event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            const terminalInput = document.getElementById('terminal-input');
+            
+            // Enter key to send command
+            terminalInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    sendCommand();
+                    e.preventDefault();
+                } else if (e.key === 'ArrowUp') {
+                    // Navigate command history up
+                    if (historyIndex < commandHistory.length - 1) {
+                        historyIndex++;
+                        terminalInput.value = commandHistory[historyIndex];
+                    }
+                    e.preventDefault();
+                } else if (e.key === 'ArrowDown') {
+                    // Navigate command history down
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        terminalInput.value = commandHistory[historyIndex];
+                    } else if (historyIndex === 0) {
+                        historyIndex = -1;
+                        terminalInput.value = '';
+                    }
+                    e.preventDefault();
+                }
+            });
+            
+            // Focus terminal input when typing anywhere
+            document.addEventListener('keypress', (e) => {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+                    terminalInput.focus();
+                }
+            });
         });
     </script>
 </body>
