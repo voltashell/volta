@@ -15,9 +15,12 @@ export interface LogData {
 }
 
 export interface CommandResult {
+  command: string;
+  target: string;
   output: string;
-  error?: string;
+  timestamp: string;
   exitCode: number;
+  error?: string;
 }
 
 export interface ExecuteCommand {

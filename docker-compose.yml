@@ -1,35 +1,22 @@
 version: '3.8'
 
 services:
-  ai-flock:
+  monitor:
     build:
-      context: .
+      context: ./monitor
       dockerfile: Dockerfile
-    container_name: ai-flock-app
+    container_name: monitor
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
+    user: "0:0"  # Run as root to access Docker socket
     healthcheck:
       test: ["CMD", "node", "--version"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-
-  # Example for development with volume mounting (uncomment to use)
-  # ai-flock-dev:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: ai-flock-dev
-  #   ports:
-  #     - "3001:3000"
-  #   environment:
-  #     - NODE_ENV=development
-  #   volumes:
-  #     - .:/app
-  #     - /app/node_modules
-  #   command: npm run dev
-  #   restart: unless-stopped

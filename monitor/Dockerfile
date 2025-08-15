@@ -1,55 +1,49 @@
-# Multi-stage build for TypeScript
-FROM node:18-alpine AS builder
-
-# Install Docker CLI to monitor containers
-RUN apk add --no-cache docker-cli
-
-# Set working directory
+# Multi-stage build for Next.js with custom server
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat docker
 WORKDIR /app
 
-# Copy package files
-COPY package*.json tsconfig.json ./
+# Install dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# Install all dependencies (including dev dependencies)
-RUN npm ci && npm cache clean --force
+# Build Next.js app and TypeScript server
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
-# Copy TypeScript source code
-COPY src/ ./src/
-
-# Build TypeScript
+ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
+# Compile TypeScript server
+RUN npx tsc server.ts --outDir dist --esModuleInterop --moduleResolution node --target es2020
 
-# Production stage
-FROM node:18-alpine
-
-# Install Docker CLI and curl to monitor containers
-RUN apk add --no-cache docker-cli curl
-
-# Create app directory
+# Production image
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
 
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install Docker CLI for container management
+RUN apk add --no-cache docker
 
-# Copy built JavaScript from builder stage
+COPY --from=builder /app/public ./public
+
+RUN mkdir .next
+
+# Copy the built application
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/server.ts ./server.ts
 
-# Copy static files
-COPY public/ ./public/
+# Run as root to access Docker socket (set by docker-compose)
+USER root
 
-# Create directories with proper permissions
-RUN mkdir -p /tmp /run && \
-    chmod 755 /app
+EXPOSE 3000
 
-# Expose port
-EXPOSE 3001
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3001/ || exit 1
-
-# Start the server
 CMD ["node", "dist/server.js"]
