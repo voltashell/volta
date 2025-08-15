@@ -318,13 +318,13 @@ async function initializeGemini(): Promise<void> {
   }
 
   if (!config.geminiModel) {
-    await log('Gemini model not specified - using default gemini-1.5-flash', config.id, config.sharedDir);
+    await log('Gemini model not specified - using default gemini-2.5-pro', config.id, config.sharedDir);
   }
 
   try {
     const geminiConfig: GeminiConfig = {
       apiKey: config.geminiApiKey!,
-      model: config.geminiModel || 'gemini-1.5-flash',
+      model: config.geminiModel || 'gemini-2.5-pro',
       generationConfig: {
         temperature: 0.7,
         topK: 40,

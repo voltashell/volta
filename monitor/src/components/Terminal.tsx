@@ -5,7 +5,7 @@ import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import 'xterm/css/xterm.css'
-import io from 'socket.io-client'
+import io, { Socket } from 'socket.io-client'
 
 interface TerminalProps {
   containerName: string
@@ -14,17 +14,22 @@ interface TerminalProps {
 export default function WebTerminal({ containerName }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<Terminal | null>(null)
-  const socketRef = useRef<any>(null)
+  const socketRef = useRef<Socket | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
+  const isExitedRef = useRef<boolean>(false)
 
   useEffect(() => {
     if (!terminalRef.current) return
 
-    // Create terminal instance
+    // Create terminal instance with enhanced configuration
     const term = new Terminal({
       cursorBlink: true,
       fontSize: 14,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      convertEol: true,  // Properly handle line endings
+      scrollback: 10000,  // Keep more history
+      allowProposedApi: true,  // Enable proposed APIs for better compatibility
+      macOptionIsMeta: true,  // Better Mac keyboard support
       theme: {
         background: '#1a1a1a',
         foreground: '#ffffff',
@@ -62,14 +67,17 @@ export default function WebTerminal({ containerName }: TerminalProps) {
     xtermRef.current = term
     fitAddonRef.current = fitAddon
 
-    // Connect to socket
-    const socket = io('/', {
-      transports: ['websocket']
+    // Connect to socket - use the same connection as the main app
+    const socketUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3001';
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling']
     })
     socketRef.current = socket
 
-    // Request terminal session
-    socket.emit('terminal-start', { container: containerName })
+    // Request terminal session with a slight delay to ensure proper initialization
+    setTimeout(() => {
+      socket.emit('create-terminal', containerName)
+    }, 100)
 
     // Handle terminal output
     socket.on('terminal-output', (data: { container: string; data: string }) => {
@@ -78,9 +86,39 @@ export default function WebTerminal({ containerName }: TerminalProps) {
       }
     })
 
+    // Handle terminal closed
+    socket.on('terminal-closed', (data: { container: string }) => {
+      if (data.container === containerName) {
+        isExitedRef.current = true
+        term.write(`\r\n[Terminal session closed]\r\n`)
+        term.write('\r\n[Press Enter to restart the terminal]\r\n')
+      }
+    })
+
+    // Handle terminal errors
+    socket.on('error', (data: { container: string; message: string }) => {
+      if (data.container === containerName) {
+        term.write(`\r\n[Error: ${data.message}]\r\n`)
+      }
+    })
+    
+    // Handle terminal created successfully
+    socket.on('terminal-created', (data: { container: string; message: string }) => {
+      if (data.container === containerName) {
+        console.log(`Terminal created for ${containerName}: ${data.message}`)
+      }
+    })
+
     // Send input to server
     term.onData((data) => {
-      socket.emit('terminal-input', { container: containerName, data })
+      // Check if terminal has exited and user pressed Enter to restart
+      if (isExitedRef.current && data === '\r') {
+        isExitedRef.current = false
+        term.clear()
+        socket.emit('create-terminal', containerName)
+      } else if (!isExitedRef.current) {
+        socket.emit('terminal-input', { container: containerName, input: data })
+      }
     })
 
     // Handle resize

@@ -1,49 +1,47 @@
-# Multi-stage build for Next.js with custom server
-FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat docker python3 make g++
-WORKDIR /app
-
-# Install dependencies
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-# Build Next.js app and TypeScript server
+# Build stage
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
-RUN npm run build
-# Compile TypeScript server
-RUN npx tsc server.ts --outDir dist --esModuleInterop --moduleResolution node --target es2020
 
-# Production image
-FROM node:20-alpine AS runner
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install all dependencies
+RUN npm ci
+
+# Copy application code
+COPY ./public ./public
+COPY ./src ./src
+COPY ./eslint.config.mjs ./eslint.config.mjs
+COPY ./next.config.ts ./next.config.ts
+COPY ./postcss.config.mjs ./postcss.config.mjs
+COPY ./tailwind.config.js ./tailwind.config.js
+COPY ./tsconfig.json ./tsconfig.json
+
+# Build Next.js application
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine
 WORKDIR /app
 
-ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV production
 
-# Install Docker CLI for container management
-RUN apk add --no-cache docker
+# Copy package files
+COPY package.json package-lock.json* ./
 
-COPY --from=builder /app/public ./public
+# Install production dependencies only
+RUN npm ci --only=production
 
-RUN mkdir .next
-
-# Copy the built application
+# Copy built application from builder stage
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/server.ts ./server.ts
-
-# Run as root to access Docker socket (set by docker-compose)
-USER root
+COPY --from=builder /app/public ./public
 
 EXPOSE 3000
 
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "dist/server.js"]
+CMD ["npm", "start"]

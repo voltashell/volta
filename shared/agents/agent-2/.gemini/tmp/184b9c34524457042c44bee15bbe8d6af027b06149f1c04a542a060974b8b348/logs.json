@@ -1,0 +1,16 @@
+[
+  {
+    "sessionId": "1d0eec2b-e5e3-406b-be21-f1f8ea3f039a",
+    "messageId": 0,
+    "type": "user",
+    "message": "clear",
+    "timestamp": "2025-08-15T04:00:00.862Z"
+  },
+  {
+    "sessionId": "1d0eec2b-e5e3-406b-be21-f1f8ea3f039a",
+    "messageId": 1,
+    "type": "user",
+    "message": "what do you see in the shared space?",
+    "timestamp": "2025-08-15T04:00:21.473Z"
+  }
+]
