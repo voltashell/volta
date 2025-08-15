@@ -1,361 +1,324 @@
 # AI Flock
 
-A distributed system of AI agents running in isolated Docker containers, communicating via NATS messaging and sharing data through a secure file system. Provides VM-level isolation using Docker Desktop or traditional VMs.
+A distributed system of AI agents running in isolated Docker containers, communicating via NATS messaging and sharing data through a secure file system. Features a comprehensive web-based monitoring interface with full terminal access to each agent.
 
 ## Overview
 
-AI Flock provides strict isolation between AI agents using Docker containers with security hardening. Each agent operates independently with controlled communication through a NATS message bus and shared storage access through dedicated directories.
+AI Flock provides strict isolation between AI agents using Docker containers with security hardening. Each agent operates independently with controlled communication through a NATS message bus, shared storage access, and includes Gemini CLI integration for interactive AI conversations. The system includes a Next.js-based monitor application providing real-time logs, metrics, and **full web-based terminals** for each agent.
+
+## 🆕 New Features
+
+### Web-Based Agent Terminals
+- **Full terminal access** in the browser for each agent container
+- **Interactive shells** with proper TTY support using xterm.js
+- **Direct Gemini CLI integration** - run `gemini` for interactive AI chat sessions
+- **File system access** - create, edit, and manage files directly in agent containers
+- **Real-time terminal emulation** with colors, cursor control, and full keyboard support
+
+### Enhanced Monitoring
+- **Tabbed interface** - switch between Logs and Terminal views for each agent
+- **Real-time container statistics** - CPU, memory, and network usage
+- **Socket.IO integration** - live updates without page refresh
+- **Container management** - restart containers directly from the web interface
 
 ## Architecture
+
+### Core Components
+- **3 AI Agents**: Each with Gemini CLI, bash shell, and persistent storage
+- **NATS Message Bus**: Lightweight pub/sub for agent coordination
+- **Monitor Dashboard**: Next.js web app with real-time monitoring and terminals
+- **Shared Storage**: Per-agent directories with controlled access
 
 ### Isolation Strategy
 - **VM Level**: Docker Desktop's Linux VM or traditional VM (Vagrant) provides the base isolation layer
 - **Container Level**: Each agent runs in Docker with security hardening:
-  - Non-root user execution (UID 1001)
-  - Read-only root filesystem with tmpfs mounts
-  - Dropped Linux capabilities (CAP_DROP: ALL)
-  - Resource limits (CPU, memory, PIDs)
+  - Non-root user execution with writable workspace
+  - Resource limits (CPU, memory, PIDs) 
   - Isolated network (agents can only reach NATS)
+  - TTY support for interactive terminal sessions
 
 ### Communication & Storage
-- **NATS Messaging**: Lightweight pub/sub for agent coordination
-- **Shared Storage**: Per-agent directories with controlled access
-- **Logging**: Centralized logging to shared directory
-- **TypeScript**: Fully typed agent implementation with strict type checking
+- **NATS Messaging**: Agent coordination and task distribution
+- **WebSocket**: Real-time browser-to-agent terminal connections
+- **Shared Storage**: Per-agent directories (`/shared/agents/<id>/`)
+- **Agent Workspace**: Writable file system at `/home/agent/workspace`
 
 ## Quick Start
 
 ### Prerequisites
 - Docker Desktop (recommended for Apple Silicon)
 - Node.js 18+ (for host machine)
-- Optional: Vagrant + VirtualBox/Parallels for traditional VM
+- GEMINI_API_KEY environment variable set
 
-### Docker Desktop Approach (Recommended)
+### Start the System
 ```bash
-# 1. Start NATS and 3 agents
-npm run flock:up
+# 1. Set your Gemini API key
+export GEMINI_API_KEY="your_api_key_here"
 
-# 2. Test the system
-npm run flock:test
+# 2. Start all services (NATS + 3 agents + monitor)
+docker-compose -f docker-compose.local.yml up --build
 
-# 3. View logs
-npm run flock:logs
-
-# 4. Monitor system
-npm run flock:status
+# 3. Open the monitor dashboard
+open http://localhost:3000
 ```
 
-### Traditional VM Approach
-```bash
-# 1. Start VM and install Docker
-npm run vm:up
-
-# 2. Build agent image
-npm run vm:agents:build
-
-# 3. Start NATS and 3 agents
-npm run vm:agents
-
-# 4. Test the system
-npm run vm:agents:test
-```
+### Using the Web Interface
+1. **View Logs**: Click the "Logs" tab to see real-time container logs
+2. **Access Terminal**: Click the "Terminal" tab for full shell access
+3. **Run Gemini**: In any terminal, type `gc` for interactive Gemini chat
+4. **Create Files**: Use `touch`, `nano`, `vim` - full file system access
+5. **Quick Commands**: Use `gp "your prompt"` for one-off Gemini queries
 
 ## Project Structure
 
 ```
 ai-flock/
-├── agents/                 # TypeScript agent implementation
-│   ├── index.ts           # Agent code with NATS integration
-│   ├── tsconfig.json      # TypeScript configuration
-│   ├── Dockerfile         # Multi-stage build container
-│   └── package.json       # Agent dependencies and scripts
-├── vm/                    # VM orchestration
-│   └── docker-compose.yml # NATS + agents configuration  
-├── shared/                # Shared storage (synced to VM)
-│   ├── agents/           # Per-agent working directories
-│   ├── common/           # Shared read-only data
-│   └── logs/             # Centralized logging
-├── scripts/               # Management utilities
-│   ├── provision.sh      # VM setup with Docker installation
-│   ├── manage-agents.sh  # Agent lifecycle management
-│   └── test-client.js    # Task publishing test client
-├── aws/                   # Cloud deployment (ECS Fargate)
-│   ├── cloudformation.yaml # Infrastructure as code
-│   └── scripts/          # Deployment automation
-├── docker-compose.local.yml # Local Docker Desktop setup
-└── Vagrantfile           # Traditional VM configuration
+├── monitor/                    # 🆕 Web monitoring dashboard
+│   ├── src/
+│   │   ├── app/               # Next.js app router
+│   │   ├── components/        
+│   │   │   ├── ContainerWindow.tsx  # Agent log/terminal tabs
+│   │   │   └── Terminal.tsx         # xterm.js terminal component
+│   │   └── types/             # TypeScript interfaces
+│   ├── server.ts              # Custom server with Socket.IO + node-pty
+│   ├── Dockerfile             # Debian-based for native module support
+│   └── package.json           # Next.js + Socket.IO + xterm.js
+├── agents/                     # TypeScript agent implementation  
+│   ├── src/
+│   │   ├── index.ts           # Agent code with NATS integration
+│   │   └── gemini.ts          # Gemini API integration
+│   ├── scripts/               # 🆕 Terminal helper scripts
+│   │   ├── gemini-wrapper.sh  # Interactive Gemini support
+│   │   └── setup-env.sh       # Environment configuration  
+│   ├── Dockerfile             # Multi-stage build with bash + Gemini CLI
+│   └── package.json           # Agent dependencies
+├── shared/                     # Shared storage (mounted to all containers)
+│   ├── agents/                # Per-agent working directories
+│   │   ├── agent-1/.gemini/   # Persistent Gemini configuration
+│   │   ├── agent-2/.gemini/   
+│   │   └── agent-3/.gemini/
+│   ├── common/                # Shared read-only data
+│   └── logs/                  # Centralized logging
+├── docker-compose.local.yml   # 🆕 Full system orchestration
+├── docker-compose.yml         # Monitor-only deployment
+└── scripts/                   # Management utilities
 ```
+
+## Web Dashboard Features
+
+### Container Windows
+Each agent has a dedicated window showing:
+- **Real-time logs** with timestamps and color coding
+- **Container statistics** (CPU, memory, network I/O)
+- **Tab interface** switching between Logs and Terminal
+- **Restart button** for container management
+- **Command execution** with results inline
+
+### Terminal Interface
+- **Full xterm.js terminal** with professional appearance
+- **Real PTY allocation** using node-pty for proper terminal emulation
+- **Interactive programs** work correctly (vim, nano, gemini)
+- **Window resizing** with automatic fit
+- **Copy/paste support** and keyboard shortcuts
+- **Color themes** with syntax highlighting
+
+### Gemini Integration
+Each agent container includes:
+- **Gemini CLI** pre-installed and configured
+- **API key management** via persistent `.env` files
+- **Interactive chat** - just type `gc` in any terminal
+- **Quick prompts** - use `gp "your question"` for one-off queries
+- **Persistent configuration** stored in shared volumes
 
 ## Commands
 
-### Docker Desktop Commands (Primary)
+### System Management
 ```bash
-# System Management
-npm run flock:up          # Start NATS + 3 agents (builds if needed)
-npm run flock:down        # Stop all services
-npm run flock:restart     # Restart everything
-npm run flock:status      # Show container status
-npm run flock:stats       # Show resource usage
-npm run flock:reset       # Complete cleanup (removes volumes)
+# Start everything (monitor + agents + NATS)
+docker-compose -f docker-compose.local.yml up --build
 
-# Testing & Monitoring
-npm run flock:test        # Run test client to send tasks
-npm run flock:logs        # View all logs in real-time
-npm run flock:monitor     # Live system dashboard
-npm run flock:shared      # Check shared directories
+# Monitor only (if agents are running separately)
+docker-compose up --build
 
-# Individual Service Management
-npm run flock:logs:agent1 # Agent 1 logs only
-npm run flock:logs:agent2 # Agent 2 logs only  
-npm run flock:logs:agent3 # Agent 3 logs only
-npm run flock:logs:nats   # NATS logs only
+# Stop all services
+docker-compose -f docker-compose.local.yml down
 
-# Shell Access
-npm run flock:shell:agent1  # SSH into agent-1 container
-npm run flock:shell:agent2  # SSH into agent-2 container
-npm run flock:shell:agent3  # SSH into agent-3 container
-npm run flock:shell:nats    # SSH into NATS container
+# View logs
+docker-compose -f docker-compose.local.yml logs -f
 
-# Scaling
-npm run flock:scale       # Scale to 6 agents total (2 of each type)
+# Scale agents
+docker-compose -f docker-compose.local.yml up -d --scale agent-1=2
 ```
 
-### Agent Development
+### Direct Container Access
 ```bash
-# TypeScript Development
-npm run agents:build      # Compile TypeScript agents
-npm run agents:dev        # Run agent with ts-node (development)
-npm run agents:type-check # Check types without compilation
-npm run agents:clean      # Clean compiled files
+# SSH into agent containers (alternative to web terminal)
+docker exec -it agent-1 /bin/bash
+docker exec -it agent-2 /bin/bash  
+docker exec -it agent-3 /bin/bash
 
-# Build and test cycle
-npm run agents:build && npm run flock:restart && npm run flock:test
+# Access NATS container
+docker exec -it nats /bin/sh
 ```
 
-### Traditional VM Commands
+### Development
 ```bash
-# VM Management
-npm run vm:up          # Start and provision VM
-npm run vm:ssh         # SSH into VM  
-npm run vm:down        # Stop VM
-npm run vm:destroy     # Destroy VM
+# Monitor development (with hot reload)
+cd monitor && npm run dev
 
-# Agent Management (inside VM)
-npm run vm:agents            # Start NATS + 3 agents
-npm run vm:agents:build      # Build agent Docker image
-npm run vm:agents:down       # Stop all services
-npm run vm:agents:logs       # View service logs
-npm run vm:agents:test       # Publish test tasks
+# Agent development
+cd agents && npm run build
+
+# TypeScript type checking
+npm run type-check
 ```
 
-## Agent Contract
+## Agent Features
 
-### TypeScript Interfaces
-```typescript
-interface Task {
-  id: string;
-  type: string;
-  data: any;
-  timestamp?: string;
-}
+### Interactive Capabilities
+Each agent provides:
+- **Full bash shell** with command history and completion
+- **File system access** - create and edit files in `/home/agent/workspace`
+- **Gemini AI integration** - interactive chat and prompt processing  
+- **Screen sessions** for background processes
+- **Network access** to NATS broker for agent communication
 
-interface TaskResult {
-  agentId: string;
-  taskId: string;
-  status: 'completed' | 'failed' | 'processing';
-  timestamp: string;
-  result: string;
-  error?: string;
-}
+### Environment Setup
+- **Home directory**: `/shared/agents/${AGENT_ID}/` (persistent)
+- **Workspace**: `/home/agent/workspace/` (writable) 
+- **Gemini config**: Automatically configured with API key
+- **Shell aliases**: `gc` (Gemini chat), `gp` (quick prompt)
+
+### NATS Integration
+- **Task processing** via `tasks.*` topics
+- **Result publishing** to `task.result` topic
+- **Agent events** on `agent.<id>.events`
+- **Heartbeat monitoring** every 30 seconds
+
+## Gemini CLI Usage
+
+### In Web Terminal
+```bash
+# Interactive chat session
+gc
+
+# Quick one-off prompt  
+gp "Explain Docker containers"
+
+# Check Gemini models
+gemini models list
+
+# Direct Gemini command
+gemini -p "Write a Python function to sort a list"
 ```
 
-### Environment Variables
-- `AGENT_ID`: Unique agent identifier
-- `NATS_URL`: NATS broker connection string  
-- `SHARED_DIR`: Shared storage mount point (`/shared`)
+### Configuration
+Each agent has persistent Gemini configuration in:
+```
+/shared/agents/agent-1/.gemini/.env
+/shared/agents/agent-2/.gemini/.env  
+/shared/agents/agent-3/.gemini/.env
+```
 
-### NATS Message Topics
-- `tasks.*`: Task distribution to agents
-- `task.result`: Task completion notifications
-- `agent.<id>.events`: Agent-specific events
-- `agent.<id>.heartbeat`: Health monitoring (30s interval)
-- `broadcast`: System-wide announcements
-
-### File System Layout
-- `/shared/agents/<id>/`: Agent working directory
-- `/shared/common/`: Shared read-only resources
-- `/shared/logs/<id>.log`: Agent log files
-
-## Deployment Options
-
-### 1. Docker Desktop (Recommended)
-**Best for:** Development, testing, Apple Silicon Macs
-- ✅ Easy setup and management
-- ✅ Good isolation via Docker Desktop's VM
-- ✅ Excellent performance on Apple Silicon
-- ✅ Built-in monitoring and debugging tools
-
-### 2. Traditional VM (Vagrant)
-**Best for:** Maximum isolation, production-like testing
-- ✅ Hardware-level VM isolation
-- ✅ Full control over VM configuration
-- ❌ Requires VirtualBox/VMware compatibility
-- ❌ Higher resource overhead
-
-### 3. AWS ECS Fargate
-**Best for:** Production deployment, cloud scaling
-- ✅ Serverless container orchestration
-- ✅ Auto-scaling and load balancing
-- ✅ Enterprise-grade security and compliance
-- See `aws/README.md` for deployment guide
+Configuration includes:
+- `GEMINI_API_KEY`: Your API key
+- `GEMINI_MODEL`: Model to use (default: gemini-1.5-flash)
 
 ## Security Features
 
 ### Container Security
-- **User namespaces**: Non-root user (UID 1001)
-- **Filesystem**: Read-only root with tmpfs for `/tmp` and `/run`
-- **Capabilities**: All Linux capabilities dropped
-- **Privileges**: No new privileges allowed
-- **Resources**: CPU (0.5 cores), memory (256MB), PID limits (50)
+- **User isolation**: Each agent runs as non-root user
+- **Writable workspace**: Limited writable access for development
+- **Resource limits**: CPU (0.5 cores), memory (512MB)
+- **Network isolation**: Agents can only communicate via NATS
 
-### Network Isolation
-- **Custom bridge network**: Isolated `bus` network for NATS communication
-- **No direct agent-to-agent**: Agents can only communicate via NATS
-- **No exposed ports**: Agent containers have no published ports
+### Web Interface Security
+- **Docker socket access**: Monitor runs as root to manage containers
+- **Local network binding**: Dashboard only accessible on localhost
+- **No authentication**: Intended for development use only
 
-### TypeScript Security
-- **Strict typing**: Prevents runtime type errors
-- **Input validation**: Typed interfaces for all messages
-- **Error boundaries**: Comprehensive error handling with types
+### Terminal Security
+- **PTY isolation**: Each terminal session is isolated per user
+- **Container boundaries**: Terminal access is limited to container scope
+- **Process isolation**: Each WebSocket connection gets its own PTY
 
-## Development Workflow
+## Deployment Options
 
-### Adding New Agent Types
-1. Extend TypeScript interfaces in `agents/index.ts`
-2. Implement new message handlers with proper typing
-3. Build and test: `npm run agents:build && npm run flock:restart`
-4. Validate with: `npm run flock:test`
+### 1. Local Development (Recommended)
+**Best for:** Development, testing, full feature access
+- ✅ Web terminals and real-time monitoring
+- ✅ Easy debugging and log analysis
+- ✅ Interactive Gemini CLI access
+- ✅ File system development capabilities
 
-### Debugging Agents
-```bash
-# View specific agent logs
-npm run flock:logs:agent1
+### 2. Docker Desktop Only
+**Best for:** Lightweight testing without monitor
+- ✅ Fast startup and low resource usage
+- ❌ No web interface or terminals
+- ❌ Manual container management required
 
-# Access agent shell for debugging
-npm run flock:shell:agent1
-
-# Check TypeScript compilation
-npm run agents:type-check
-
-# Monitor system resources
-npm run flock:stats
-```
-
-### Testing Isolation
-```bash
-# Test network isolation
-npm run flock:shell:agent1
-# Try: ping agent-2  # Should fail
-# Try: nc -z nats 4222  # Should succeed
-
-# Test file system isolation
-ls -la /shared/agents/  # Should only see own directory + others (read-only)
-
-# Test resource limits
-npm run flock:stats  # Monitor CPU/memory usage
-```
-
-## Monitoring & Observability
-
-### Real-time Monitoring
-```bash
-npm run flock:monitor     # Live dashboard
-npm run flock:stats       # Resource usage
-npm run flock:status      # Container health
-```
-
-### Log Analysis
-```bash
-# Centralized logging
-tail -f shared/logs/agent-1.log
-
-# Docker logs
-npm run flock:logs
-
-# NATS monitoring
-curl http://localhost:8222/varz
-```
-
-### Health Checks
-- **Container health**: Built-in Docker health checks
-- **Agent heartbeats**: 30-second NATS heartbeat messages
-- **NATS monitoring**: HTTP endpoint at port 8222
-
-## Performance Tuning
-
-### Resource Allocation
-- **CPU limits**: Adjust in `docker-compose.local.yml`
-- **Memory limits**: Configure per-agent memory allocation
-- **Storage**: Monitor shared directory performance
-
-### Scaling
-```bash
-# Scale agents horizontally
-npm run flock:scale
-
-# Custom scaling
-docker-compose -f docker-compose.local.yml up -d --scale agent-1=5
-```
+### 3. Traditional VM (Legacy)
+**Best for:** Maximum isolation testing
+- ✅ Hardware-level VM isolation
+- ❌ No web monitoring interface
+- ❌ More complex setup and management
 
 ## Troubleshooting
 
-### Common Issues
-
-**TypeScript compilation errors**
-- Run: `npm run agents:type-check`
-- Fix type errors in `agents/index.ts`
-- Rebuild: `npm run agents:build`
-
-**Agents fail to connect to NATS**
-- Check: `npm run flock:logs:nats`
-- Verify: `docker inspect nats`
-- Network: `docker network ls`
-
-**Container startup failures**
-- Check: `npm run flock:status`
-- Logs: `npm run flock:logs:agent1`
-- Build: `docker images | grep ai-agent`
-
-**Docker Desktop issues**
-- Restart Docker Desktop
-- Check VM resources in Docker Desktop settings
-- Clear containers: `npm run flock:reset`
-
-### Debugging Commands
+### Monitor Issues
 ```bash
-# System diagnostics
-docker system info
-docker system df
+# Check monitor logs
+docker logs monitor
 
-# Network debugging
-docker network inspect ai-flock_bus
+# Rebuild monitor with dependencies
+cd monitor && npm install && docker-compose up --build
 
-# Container inspection
-docker inspect agent-1 | jq '.Config.Env'
+# Check Docker socket access
+docker ps  # Should list all containers
 ```
 
-## Migration Guide
+### Terminal Connection Issues
+```bash
+# Verify WebSocket connection
+curl -I http://localhost:3000
 
-### From VM to Docker Desktop
-1. Stop VM: `npm run vm:down`
-2. Start Docker Desktop: `npm run flock:up`
-3. Test: `npm run flock:test`
+# Check container TTY support
+docker exec -it agent-1 tty
 
-### From JavaScript to TypeScript
-The agents are now fully TypeScript with:
-- Strict type checking
-- Comprehensive interfaces
-- Better error handling
-- Multi-stage Docker builds
+# Test node-pty installation
+docker exec monitor node -e "console.log(require('node-pty'))"
+```
 
-All existing functionality remains the same with enhanced type safety.
+### Gemini CLI Issues
+```bash
+# Check API key configuration
+docker exec agent-1 cat /shared/agents/agent-1/.gemini/.env
+
+# Test Gemini CLI directly
+docker exec agent-1 gemini models list
+
+# Verify environment
+docker exec agent-1 env | grep GEMINI
+```
+
+### Common Issues
+- **Terminal not loading**: Check browser console for WebSocket errors
+- **Gemini auth errors**: Verify GEMINI_API_KEY is set correctly
+- **Container connectivity**: Ensure Docker daemon is running
+- **Build failures**: Use `--no-cache` flag for clean builds
+
+## Development Workflow
+
+### Adding New Features
+1. **Agent modifications**: Edit TypeScript files in `agents/src/`
+2. **Monitor updates**: Modify React components in `monitor/src/`  
+3. **Rebuild and test**: `docker-compose -f docker-compose.local.yml up --build`
+4. **Access terminals**: Use web interface for interactive testing
+
+### Debugging Agents
+1. **Web terminal**: Click Terminal tab in monitor dashboard
+2. **Interactive debugging**: Use `gc` for AI assistance with debugging
+3. **File inspection**: Create and edit files directly in terminals
+4. **Log analysis**: Switch between Terminal and Logs tabs
+
+The AI Flock system now provides a complete development and monitoring environment with full terminal access, making it easy to develop, test, and debug distributed AI agent systems.

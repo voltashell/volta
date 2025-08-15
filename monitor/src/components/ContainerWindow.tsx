@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ContainerName, LogData, ContainerStat, CommandResult } from '@/types/monitor';
 import dynamic from 'next/dynamic';
 
@@ -41,7 +41,7 @@ export default function ContainerWindow({
 }: ContainerWindowProps) {
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const [command, setCommand] = useState('');
-  const [activeTab, setActiveTab] = useState<'logs' | 'terminal'>('logs');
+  const [activeTab, setActiveTab] = useState<'logs' | 'terminal'>('terminal');
   const logWindowRef = useRef<HTMLDivElement>(null);
 
   // Combine logs and command results into a single timeline

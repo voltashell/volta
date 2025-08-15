@@ -19,8 +19,8 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine
 
-# Install bash, screen, and dependencies for shell access and Gemini CLI
-RUN apk add --no-cache bash curl git npm screen util-linux
+# Install bash, screen, vim and dependencies for shell access and Gemini CLI
+RUN apk add --no-cache bash curl git npm screen util-linux vim
 
 # Install Gemini CLI globally
 RUN npm install -g @google/gemini-cli
@@ -46,10 +46,8 @@ RUN npm ci --only=production && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 
 # Copy helper scripts
-COPY scripts/gemini-wrapper.sh /usr/local/bin/gc
-COPY scripts/gemini-shell.sh /usr/local/bin/gemini-shell
 COPY scripts/setup-env.sh /etc/profile.d/agent-env.sh
-RUN chmod +x /usr/local/bin/gc /usr/local/bin/gemini-shell /etc/profile.d/agent-env.sh
+RUN chmod +x /etc/profile.d/agent-env.sh
 
 # Create .gemini template (will be copied to shared volume at runtime)
 
@@ -61,13 +59,21 @@ RUN echo '#!/bin/bash' > /home/agent/.bashrc && \
     echo '# Welcome message' >> /home/agent/.bashrc && \
     echo 'echo "Welcome to ${AGENT_ID} shell!"' >> /home/agent/.bashrc && \
     echo 'echo "📝 Quick commands:"' >> /home/agent/.bashrc && \
-    echo 'echo "   gc          - Start Gemini interactive chat"' >> /home/agent/.bashrc && \
-    echo 'echo "   gp \"text\"   - Quick Gemini prompt"' >> /home/agent/.bashrc && \
+    echo 'echo "   gc                    - Start Gemini interactive chat"' >> /home/agent/.bashrc && \
+    echo 'echo "   gemini prompt \"text\"  - Send a prompt to Gemini"' >> /home/agent/.bashrc && \
+    echo 'echo "   echo \"text\" | gemini prompt - - Pipe input to Gemini"' >> /home/agent/.bashrc && \
     echo 'echo "📁 Workspace: /home/agent/workspace (writable)"' >> /home/agent/.bashrc && \
     echo 'echo "📁 Shared: /shared/agents/${AGENT_ID} (persistent)"' >> /home/agent/.bashrc && \
     echo '' >> /home/agent/.bashrc && \
-    echo '# Default to workspace directory' >> /home/agent/.bashrc && \
-    echo 'cd /home/agent/workspace 2>/dev/null || cd /home/agent' >> /home/agent/.bashrc
+    echo '# Auto-start Gemini on first interactive shell' >> /home/agent/.bashrc && \
+    echo 'if [ -z "$GEMINI_STARTED" ] && [ -t 0 ] && [ -t 1 ]; then' >> /home/agent/.bashrc && \
+    echo '  export GEMINI_STARTED=1' >> /home/agent/.bashrc && \
+    echo '  echo "🚀 Starting Gemini AI Assistant..."' >> /home/agent/.bashrc && \
+    echo '  echo "Type exit to leave Gemini and access the shell"' >> /home/agent/.bashrc && \
+    echo '  sleep 1' >> /home/agent/.bashrc && \
+    echo '  cd /' >> /home/agent/.bashrc && \
+    echo '  gemini' >> /home/agent/.bashrc && \
+    echo 'fi' >> /home/agent/.bashrc
 
 # Create entrypoint script that runs agent in background and keeps container alive
 RUN echo '#!/bin/bash' > /entrypoint.sh && \
@@ -158,5 +164,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "console.log('healthy')" || exit 1
 
 # Run entrypoint script
-ENTRYPOINT ["/bin/bash"]
-CMD ["/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

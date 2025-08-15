@@ -35,7 +35,7 @@ services:
       - NATS_URL=nats://nats:4222
       - SHARED_DIR=/shared
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=gemini-1.5-flash
+      - GEMINI_MODEL=gemini-2.5-pro
     volumes:
       - ./shared:/shared
     networks:
@@ -68,7 +68,7 @@ services:
       - NATS_URL=nats://nats:4222
       - SHARED_DIR=/shared
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=gemini-1.5-flash
+      - GEMINI_MODEL=gemini-2.5-pro
     volumes:
       - ./shared:/shared
     networks:
@@ -101,7 +101,7 @@ services:
       - NATS_URL=nats://nats:4222
       - SHARED_DIR=/shared
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=gemini-1.5-flash
+      - GEMINI_MODEL=gemini-2.5-pro
     volumes:
       - ./shared:/shared
     networks:
@@ -116,15 +116,15 @@ services:
     tty: true
     stdin_open: true
 
-  monitor:
+  monitor-server:
     build:
-      context: ./monitor
+      context: ./monitor-server
       dockerfile: Dockerfile
-    image: ai-flock-monitor:latest
-    container_name: monitor
+    image: ai-flock-monitor-server:latest
+    container_name: monitor-server
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -137,6 +137,22 @@ services:
     user: "0:0"  # Run as root to access Docker socket
     security_opt:
       - no-new-privileges:false  # Allow privileges to access Docker
+
+  monitor:
+    build:
+      context: ./monitor
+      dockerfile: Dockerfile
+    image: ai-flock-monitor:latest
+    container_name: monitor
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - bus
+    depends_on:
+      - monitor-server
+    environment:
+      - NEXT_PUBLIC_WEBSOCKET_URL=http://monitor-server:3001
 
 networks:
   bus:
