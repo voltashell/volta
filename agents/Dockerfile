@@ -19,8 +19,8 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine
 
-# Install bash and dependencies for shell access and Gemini CLI
-RUN apk add --no-cache bash curl git npm
+# Install bash, screen, and dependencies for shell access and Gemini CLI
+RUN apk add --no-cache bash curl git npm screen util-linux
 
 # Install Gemini CLI globally
 RUN npm install -g @google/gemini-cli
@@ -45,7 +45,29 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built JavaScript from builder stage
 COPY --from=builder /app/dist ./dist
 
+# Copy helper scripts
+COPY scripts/gemini-wrapper.sh /usr/local/bin/gc
+COPY scripts/gemini-shell.sh /usr/local/bin/gemini-shell
+COPY scripts/setup-env.sh /etc/profile.d/agent-env.sh
+RUN chmod +x /usr/local/bin/gc /usr/local/bin/gemini-shell /etc/profile.d/agent-env.sh
+
 # Create .gemini template (will be copied to shared volume at runtime)
+
+# Create bashrc for interactive sessions
+RUN echo '#!/bin/bash' > /home/agent/.bashrc && \
+    echo '# Source global environment' >> /home/agent/.bashrc && \
+    echo 'source /etc/profile.d/agent-env.sh' >> /home/agent/.bashrc && \
+    echo '' >> /home/agent/.bashrc && \
+    echo '# Welcome message' >> /home/agent/.bashrc && \
+    echo 'echo "Welcome to ${AGENT_ID} shell!"' >> /home/agent/.bashrc && \
+    echo 'echo "📝 Quick commands:"' >> /home/agent/.bashrc && \
+    echo 'echo "   gc          - Start Gemini interactive chat"' >> /home/agent/.bashrc && \
+    echo 'echo "   gp \"text\"   - Quick Gemini prompt"' >> /home/agent/.bashrc && \
+    echo 'echo "📁 Workspace: /home/agent/workspace (writable)"' >> /home/agent/.bashrc && \
+    echo 'echo "📁 Shared: /shared/agents/${AGENT_ID} (persistent)"' >> /home/agent/.bashrc && \
+    echo '' >> /home/agent/.bashrc && \
+    echo '# Default to workspace directory' >> /home/agent/.bashrc && \
+    echo 'cd /home/agent/workspace 2>/dev/null || cd /home/agent' >> /home/agent/.bashrc
 
 # Create entrypoint script that runs agent in background and keeps container alive
 RUN echo '#!/bin/bash' > /entrypoint.sh && \
@@ -103,25 +125,38 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'node dist/index.js &' >> /entrypoint.sh && \
     echo 'AGENT_PID=$!' >> /entrypoint.sh && \
     echo 'echo "🚀 Agent started with PID: $AGENT_PID"' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Start a screen session with Gemini available' >> /entrypoint.sh && \
+    echo 'screen -dmS gemini-session bash -c "export HOME=/shared/agents/${AGENT_ID}; export GEMINI_CONFIG_DIR=/shared/agents/${AGENT_ID}/.gemini; exec bash"' >> /entrypoint.sh && \
+    echo 'echo "📺 Screen session '\''gemini-session'\'' created for interactive Gemini CLI"' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
     echo 'echo "🖥️  Shell access: docker exec -it $HOSTNAME /bin/bash"' >> /entrypoint.sh && \
-    echo 'echo "🔮 Gemini CLI: gemini chat, gemini models list, gemini --help"' >> /entrypoint.sh && \
+    echo 'echo "🔮 Gemini CLI interactive mode:"' >> /entrypoint.sh && \
+    echo 'echo "   1. Enter container: docker exec -it $HOSTNAME /bin/bash"' >> /entrypoint.sh && \
+    echo 'echo "   2. Attach to screen: screen -r gemini-session"' >> /entrypoint.sh && \
+    echo 'echo "   3. Run: gemini (starts interactive mode)"' >> /entrypoint.sh && \
+    echo 'echo "   4. Detach from screen: Ctrl+A then D"' >> /entrypoint.sh && \
     echo 'echo "📁 Shared storage: /shared/agents/${AGENT_ID}/"' >> /entrypoint.sh && \
     echo 'echo "⚙️  Gemini config: $GEMINI_CONFIG_DIR/.env"' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
-    echo '# Wait for agent process' >> /entrypoint.sh && \
-    echo 'wait $AGENT_PID' >> /entrypoint.sh && \
+    echo '# Keep container running' >> /entrypoint.sh && \
+    echo 'exec tail -f /dev/null' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
 # Create necessary directories with proper permissions
-RUN mkdir -p /shared /tmp /run && \
-    chown -R agent:agent /app /tmp /run /entrypoint.sh
+RUN mkdir -p /shared /tmp /run /home/agent/workspace && \
+    chown -R agent:agent /app /tmp /run /entrypoint.sh /home/agent
 
 # Switch to non-root user
 USER agent
+
+# Set bash as default shell
+SHELL ["/bin/bash", "-c"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "console.log('healthy')" || exit 1
 
 # Run entrypoint script
+ENTRYPOINT ["/bin/bash"]
 CMD ["/entrypoint.sh"]

@@ -40,15 +40,15 @@ services:
       - ./shared:/shared
     networks:
       - bus
-    read_only: true
     tmpfs:
       - /tmp
       - /run
-      - /home/agent:uid=1001,gid=1001
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
+    tty: true
+    stdin_open: true
 
   agent-2:
     build:
@@ -73,15 +73,15 @@ services:
       - ./shared:/shared
     networks:
       - bus
-    read_only: true
     tmpfs:
       - /tmp
       - /run
-      - /home/agent:uid=1002,gid=1002
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
+    tty: true
+    stdin_open: true
 
   agent-3:
     build:
@@ -106,15 +106,15 @@ services:
       - ./shared:/shared
     networks:
       - bus
-    read_only: true
     tmpfs:
       - /tmp
       - /run
-      - /home/agent:uid=1003,gid=1003
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
+    tty: true
+    stdin_open: true
 
   monitor:
     build:

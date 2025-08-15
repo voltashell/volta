@@ -1,6 +1,6 @@
 # Multi-stage build for Next.js with custom server
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat docker
+RUN apk add --no-cache libc6-compat docker python3 make g++
 WORKDIR /app
 
 # Install dependencies
