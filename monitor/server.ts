@@ -3,6 +3,7 @@ import { parse } from 'url'
 import next from 'next'
 import { Server as SocketIOServer, Socket } from 'socket.io'
 import { spawn, ChildProcess } from 'child_process'
+import * as pty from 'node-pty'
 import { ContainerStat, ExecuteCommand } from './src/types/monitor'
 
 const dev = process.env.NODE_ENV !== 'production'
@@ -14,6 +15,7 @@ const app = next({ dev, hostname, port })
 const handle = app.getRequestHandler()
 
 const logStreams = new Map<string, ChildProcess>()
+const terminals = new Map<string, any>() // PTY instances
 
 app.prepare().then(() => {
   const server = createServer(async (req, res) => {
@@ -63,6 +65,14 @@ app.prepare().then(() => {
         stream.kill()
       })
       logStreams.clear()
+      
+      // Clean up terminals for this client
+      terminals.forEach((term, key) => {
+        if (key.startsWith(socket.id)) {
+          term.kill()
+          terminals.delete(key)
+        }
+      })
     })
 
     socket.on('restart-container', (containerName: string) => {
@@ -71,6 +81,36 @@ app.prepare().then(() => {
 
     socket.on('execute-command', (commandData: ExecuteCommand) => {
       executeCommand(commandData, socket)
+    })
+
+    // Terminal handlers
+    socket.on('terminal-start', ({ container }: { container: string }) => {
+      startTerminal(container, socket)
+    })
+
+    socket.on('terminal-input', ({ container, data }: { container: string; data: string }) => {
+      const terminalKey = `${socket.id}-${container}`
+      const term = terminals.get(terminalKey)
+      if (term) {
+        term.write(data)
+      }
+    })
+
+    socket.on('terminal-resize', ({ container, cols, rows }: { container: string; cols: number; rows: number }) => {
+      const terminalKey = `${socket.id}-${container}`
+      const term = terminals.get(terminalKey)
+      if (term && term.resize) {
+        term.resize(cols, rows)
+      }
+    })
+
+    socket.on('terminal-stop', ({ container }: { container: string }) => {
+      const terminalKey = `${socket.id}-${container}`
+      const term = terminals.get(terminalKey)
+      if (term) {
+        term.kill()
+        terminals.delete(terminalKey)
+      }
     })
   })
 
@@ -182,6 +222,44 @@ function restartContainer(containerName: string, socket: Socket) {
       container: containerName,
       success: false
     })
+  })
+}
+
+function startTerminal(containerName: string, socket: Socket) {
+  const terminalKey = `${socket.id}-${containerName}`
+  
+  // Clean up any existing terminal
+  const existingTerm = terminals.get(terminalKey)
+  if (existingTerm) {
+    existingTerm.kill()
+  }
+
+  console.log(`Starting terminal for ${containerName}`)
+  
+  // Create PTY process
+  const term = pty.spawn('docker', ['exec', '-it', containerName, '/bin/bash'], {
+    name: 'xterm-color',
+    cols: 80,
+    rows: 30,
+    cwd: process.env.HOME,
+    env: process.env as any
+  })
+
+  terminals.set(terminalKey, term)
+
+  // Handle PTY output
+  term.onData((data: string) => {
+    socket.emit('terminal-output', {
+      container: containerName,
+      data
+    })
+  })
+
+  // Handle PTY exit
+  term.onExit(() => {
+    console.log(`Terminal for ${containerName} exited`)
+    terminals.delete(terminalKey)
+    socket.emit('terminal-exit', { container: containerName })
   })
 }
 
