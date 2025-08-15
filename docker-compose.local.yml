@@ -124,7 +124,7 @@ services:
     container_name: monitor
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3000:3000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:

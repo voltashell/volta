@@ -9,7 +9,6 @@ import {
   ContainerStat, 
   CommandResult, 
   ExecuteCommand, 
-  TargetType,
   ConnectionStatus,
   RestartResponse,
   ErrorData 
@@ -33,7 +32,7 @@ export default function Monitor() {
   });
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3001');
+    const newSocket = io();
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
@@ -79,7 +78,7 @@ export default function Monitor() {
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCommand = (command: string, containerName: ContainerName) => {
     if (!socket) return;
@@ -145,7 +144,7 @@ export default function Monitor() {
 
       {/* Header */}
       <header className="bg-gray-800 px-5 py-3 border-b border-gray-600 flex justify-between items-center">
-        <h1 className="text-lg font-bold text-green-400">🤖 AI Flock Monitor</h1>
+        <h1 className="text-lg font-bold text-green-400">AI Flock Monitor</h1>
         <div className="flex space-x-6 text-xs">
           <div className="text-center">
             <div className="text-gray-400">Containers</div>

@@ -72,8 +72,9 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash}' >> /entrypoint.sh && \
     echo 'EOF' >> /entrypoint.sh && \
     echo '  ' >> /entrypoint.sh && \
-    echo '  # Create symlink in working directory for gemini-cli to find' >> /entrypoint.sh && \
-    echo '  ln -sf "$GEMINI_CONFIG_DIR" /app/.gemini' >> /entrypoint.sh && \
+    echo '  # Set environment variables for gemini-cli to find configuration' >> /entrypoint.sh && \
+    echo '  export GEMINI_CONFIG_DIR="$GEMINI_CONFIG_DIR"' >> /entrypoint.sh && \
+    echo '  export HOME="/shared/agents/${AGENT_ID}"' >> /entrypoint.sh && \
     echo '  ' >> /entrypoint.sh && \
     echo '  # Verify gemini can load configuration' >> /entrypoint.sh && \
     echo '  if gemini models list >/dev/null 2>&1; then' >> /entrypoint.sh && \
@@ -94,6 +95,9 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'else' >> /entrypoint.sh && \
     echo '  echo "📋 No Gemini configuration found"' >> /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Export HOME environment for shell sessions to find Gemini config' >> /entrypoint.sh && \
+    echo 'export HOME="/shared/agents/${AGENT_ID}"' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
     echo '# Start the agent process in background' >> /entrypoint.sh && \
     echo 'node dist/index.js &' >> /entrypoint.sh && \

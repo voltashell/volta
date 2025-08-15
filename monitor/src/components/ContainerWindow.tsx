@@ -38,7 +38,9 @@ export default function ContainerWindow({
   const logWindowRef = useRef<HTMLDivElement>(null);
 
   // Combine logs and command results into a single timeline
-  const allEntries = [...logs, ...commandResults.map(result => ({
+  type LogEntry = LogData & { isCommand?: boolean };
+  
+  const allEntries: LogEntry[] = [...logs, ...commandResults.map(result => ({
     container: name,
     timestamp: result.timestamp,
     data: `$ ${result.command}\n${result.output || ''}${result.error ? `\nError: ${result.error}` : ''}`,
@@ -142,11 +144,11 @@ export default function ContainerWindow({
           <div className="text-gray-500 italic">No logs available</div>
         ) : (
           allEntries.map((entry, index) => (
-            <div key={index} className={`mb-1 break-words ${(entry as any).isCommand ? 'bg-gray-900 px-1 py-0.5 rounded' : ''}`}>
+            <div key={index} className={`mb-1 break-words ${entry.isCommand ? 'bg-gray-900 px-1 py-0.5 rounded' : ''}`}>
               <span className="text-gray-500 mr-2">
                 {formatTimestamp(entry.timestamp)}
               </span>
-              <span className={`${(entry as any).isCommand ? 'text-cyan-400' : getLogClass(entry.data, entry.isError)}`}>
+              <span className={`${entry.isCommand ? 'text-cyan-400' : getLogClass(entry.data, entry.isError)}`}>
                 {entry.data.trim()}
               </span>
             </div>
