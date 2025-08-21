@@ -51,8 +51,8 @@ export interface AgentConfig {
   heartbeatInterval?: number;
   maxRetries?: number;
   logLevel?: 'debug' | 'info' | 'warn' | 'error';
-  geminiApiKey?: string;
-  geminiModel?: string;
+  claudeApiKey?: string;
+  claudeModel?: string;
 }
 
 export interface AgentDirs {
@@ -68,24 +68,20 @@ export interface ProcessingStats {
   uptime: number;
 }
 
-export interface GeminiConfig {
+export interface ClaudeConfig {
   apiKey: string;
   model: string;
-  generationConfig?: {
-    temperature?: number;
-    topK?: number;
-    topP?: number;
-    maxOutputTokens?: number;
-  };
+  maxTokens?: number;
+  temperature?: number;
 }
 
-export interface GeminiTask {
+export interface ClaudeTask {
   prompt: string;
   systemInstruction?: string;
   context?: any;
 }
 
-export interface GeminiResponse {
+export interface ClaudeResponse {
   text: string;
   usage?: {
     promptTokens: number;

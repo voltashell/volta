@@ -21,6 +21,13 @@ AI Flock provides strict isolation between AI agents using Docker containers wit
 - **Socket.IO integration** - live updates without page refresh
 - **Container management** - restart containers directly from the web interface
 
+### Custom Repository Access
+- **Mount external codebases** into agent containers for AI-assisted editing
+- **Supports absolute paths** and tilde expansion (`~/repositories/project`)
+- **Shared access** across all agents to the same repository
+- **Automatic validation** of paths before container startup
+- **Permission management** for cross-platform compatibility
+
 ## Architecture
 
 ### Core Components
@@ -42,6 +49,7 @@ AI Flock provides strict isolation between AI agents using Docker containers wit
 - **WebSocket**: Real-time browser-to-agent terminal connections
 - **Shared Storage**: Per-agent directories (`/shared/agents/<id>/`)
 - **Agent Workspace**: Writable file system at `/home/agent/workspace`
+- **Custom Repository**: Optional mount at `/workspace/repo` for external codebases
 
 ## Quick Start
 
@@ -51,6 +59,8 @@ AI Flock provides strict isolation between AI agents using Docker containers wit
 - GEMINI_API_KEY environment variable set
 
 ### Start the System
+
+#### Basic Setup
 ```bash
 # 1. Set your Gemini API key
 export GEMINI_API_KEY="your_api_key_here"
@@ -60,6 +70,21 @@ docker-compose -f docker-compose.local.yml up --build
 
 # 3. Open the monitor dashboard
 open http://localhost:3000
+```
+
+#### With Custom Repository
+```bash
+# 1. Configure environment (.env file)
+GEMINI_API_KEY="your_api_key_here"
+CUSTOM_REPO_PATH="~/repositories/my-project"
+
+# 2. Use the startup script with validation
+./scripts/start-with-repo.sh
+
+# 3. Access repository in agents at /workspace/repo
+# Open terminal in web UI and run:
+cd /workspace/repo
+ls -la
 ```
 
 ### Using the Web Interface
@@ -223,6 +248,72 @@ Each agent has persistent Gemini configuration in:
 Configuration includes:
 - `GEMINI_API_KEY`: Your API key
 - `GEMINI_MODEL`: Model to use (default: gemini-1.5-flash)
+
+## Custom Repository Access
+
+### Overview
+The custom repository feature allows you to mount external codebases into all agent containers, enabling AI-assisted development on your existing projects. All agents share access to the same repository mounted at `/workspace/repo`.
+
+### Configuration
+Edit your `.env` file (copy from `.env.example` if needed):
+```bash
+# Mount a repository from your home directory
+CUSTOM_REPO_PATH=~/repositories/my-project
+
+# Or use an absolute path
+CUSTOM_REPO_PATH=/Users/username/projects/my-app
+```
+
+### Usage Examples
+```bash
+# 1. Basic usage with validation
+export CUSTOM_REPO_PATH="~/repositories/my-project"
+./scripts/start-with-repo.sh
+
+# 2. Direct Docker Compose (no validation)
+export CUSTOM_REPO_PATH="/absolute/path/to/repo"
+docker-compose -f docker-compose.local.yml up --build
+
+# 3. Access in agent terminals
+docker exec -it agent-1 /bin/bash
+cd /workspace/repo
+ls -la  # Your repository files
+```
+
+### Web Terminal Access
+1. Open the monitor at http://localhost:3000
+2. Click on any agent's Terminal tab
+3. Navigate to your repository:
+   ```bash
+   cd /workspace/repo
+   ls -la
+   
+   # Use Gemini to analyze code
+   gp "Explain the structure of this repository"
+   
+   # Edit files directly
+   vim main.py
+   ```
+
+### Security Considerations
+- **Trust**: Only mount repositories you trust agents to modify
+- **Permissions**: All agents share the same repository access
+- **Backups**: Use version control to track changes
+- **Write Access**: Agents can create, modify, and delete files
+
+### Troubleshooting
+```bash
+# Validate repository path
+./scripts/validate-repo-path.sh
+
+# Check mount in container
+docker exec agent-1 ls -la /workspace/repo
+
+# Permission issues on macOS
+# Add your user ID to .env:
+UID=$(id -u)
+GID=$(id -g)
+```
 
 ## Security Features
 

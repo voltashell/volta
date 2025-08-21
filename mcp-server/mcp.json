@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ai-flock-communication": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "env": {
+        "NATS_URL": "nats://nats:4222",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}
