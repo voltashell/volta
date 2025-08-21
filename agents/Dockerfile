@@ -52,6 +52,11 @@ RUN chmod +x /etc/profile.d/agent-env.sh
 # Copy CLAUDE.md to /home/.claude directory
 RUN mkdir -p /home/.claude
 COPY CLAUDE.md /home/.claude/CLAUDE.md
+COPY CLAUDE.md /home/CLAUDE.md
+RUN chmod 644 /home/CLAUDE.md
+
+# Copy set-auth directory for authentication template
+COPY set-auth/ /app/set-auth/
 
 # Create .gemini template (will be copied to shared volume at runtime)
 
@@ -63,7 +68,7 @@ RUN echo '#!/bin/bash' > /home/agent/.bashrc && \
     echo '# Welcome message' >> /home/agent/.bashrc && \
     echo 'echo "Welcome to ${AGENT_ID} shell!"' >> /home/agent/.bashrc && \
     echo 'echo " Workspace: /home/agent/workspace (writable)"' >> /home/agent/.bashrc && \
-    echo 'echo "📁 Shared: /home/shared/agents/${AGENT_ID} (persistent)"' >> /home/agent/.bashrc && \
+    echo 'echo "📁 Shared: /shared/agents/${AGENT_ID} (persistent)"' >> /home/agent/.bashrc && \
     echo 'if [ -n "$CUSTOM_REPO_PATH" ] && [ -d "/home/workspace/repo" ]; then' >> /home/agent/.bashrc && \
     echo '  echo "📂 Custom Repository: /home/workspace/repo (mounted from host)"' >> /home/agent/.bashrc && \
     echo 'fi' >> /home/agent/.bashrc && \
@@ -85,11 +90,14 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
     # echo '# Configure Claude Code CLI with persistent .claude/.env file in shared storage' >> /entrypoint.sh && \
     echo 'CLAUDE_CONFIG_DIR="/home/.claude"' >> /entrypoint.sh && \
-    # echo '# Ensure shared agents directory exists and has proper permissions' >> /entrypoint.sh && \
-    # echo 'mkdir -p "$CLAUDE_CONFIG_DIR"' >> /entrypoint.sh && \
-    # echo 'chown -R agent:agent /home/.claude' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
-    # echo '# Create home .claude directory for CLI configuration' >> /entrypoint.sh && \
+    echo '# Copy authentication template to shared directory for all agents' >> /entrypoint.sh && \
+    echo 'echo "📋 Copying authentication template to shared directory..."' >> /entrypoint.sh && \
+    echo 'mkdir -p /shared/agents/${AGENT_ID}' >> /entrypoint.sh && \
+    echo 'cp -r /app/set-auth/. /shared/agents/${AGENT_ID}/ 2>/dev/null || true' >> /entrypoint.sh && \
+    echo 'chown -R agent:agent /shared/agents/${AGENT_ID}' >> /entrypoint.sh && \
+    echo 'echo "✅ Authentication template copied to /shared/agents/${AGENT_ID}"' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
     echo 'mkdir -p /home/.claude' >> /entrypoint.sh && \
     # echo 'echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" > /home/.claude/.env' >> /entrypoint.sh && \
     # echo '' >> /entrypoint.sh && \
@@ -141,8 +149,8 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
 # Create necessary directories with proper permissions
-RUN mkdir -p /tmp /run /home/agent/workspace /home/shared /home/workspace/repo /shared/agents && \
-    chown -R agent:agent /app /tmp /run /entrypoint.sh /home/agent /home/shared /home/workspace /shared /home/.claude
+RUN mkdir -p /tmp /run /home/agent/workspace /home/workspace/repo /shared/agents && \
+    chown -R agent:agent /app /tmp /run /entrypoint.sh /home/agent /home/workspace /shared /home/.claude /home/CLAUDE.md
 
 # Switch to non-root user
 USER agent
