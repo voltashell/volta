@@ -1,9 +1,10 @@
 import { connect, NatsConnection, StringCodec, Subscription, Msg } from 'nats';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { Task, TaskResult, AgentEvent, Heartbeat, BroadcastMessage, AgentConfig, ProcessingStats, GeminiConfig } from './types';
+import { Task, TaskResult, AgentEvent, Heartbeat, BroadcastMessage, AgentConfig, ProcessingStats, ClaudeConfig } from './types';
 import { ensureAgentDirs, log, calculateBackoffDelay, isValidTask, sleep, formatUptime } from './utils';
-import { GeminiService } from './gemini';
+import { ClaudeService } from './claude';
+import { MCPCommunicationClient } from './mcp-client';
 
 // Environment configuration
 const config: AgentConfig = {
@@ -13,12 +14,12 @@ const config: AgentConfig = {
   heartbeatInterval: parseInt(process.env.HEARTBEAT_INTERVAL || '30000'),
   maxRetries: parseInt(process.env.MAX_RETRIES || '10'),
   logLevel: (process.env.LOG_LEVEL as any) || 'info',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
+  claudeModel: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022'
 };
 
-// Add geminiApiKey only if it exists
-if (process.env.GEMINI_API_KEY) {
-  config.geminiApiKey = process.env.GEMINI_API_KEY;
+// Add claudeApiKey only if it exists
+if (process.env.ANTHROPIC_API_KEY) {
+  config.claudeApiKey = process.env.ANTHROPIC_API_KEY;
 }
 
 // String codec for NATS messages
@@ -35,8 +36,11 @@ const stats: ProcessingStats = {
 
 const startTime = Date.now();
 
-// Gemini service instance
-let geminiService: GeminiService | null = null;
+// Claude service instance
+let claudeService: ClaudeService | null = null;
+
+// MCP client instance
+let mcpClient: MCPCommunicationClient | null = null;
 
 /**
  * Process an incoming task and return the result
@@ -56,18 +60,18 @@ async function processTask(data: Uint8Array, agentDir: string): Promise<TaskResu
     
     let taskResult = `Task ${task.id} processed by ${config.id}`;
     
-    // Process task with Gemini if available and task type is 'gemini' or 'ai'
-    if (geminiService && (task.type === 'gemini' || task.type === 'ai' || (task.data && typeof task.data === 'object' && (task.data as any).useGemini))) {
+    // Process task with Claude if available and task type is 'claude' or 'ai'
+    if (claudeService && (task.type === 'claude' || task.type === 'ai' || (task.data && typeof task.data === 'object' && (task.data as any).useClaude))) {
       try {
-        await log(`Using Gemini to process task ${task.id}`, config.id, config.sharedDir);
-        const geminiResponse = await geminiService.processAgentTask(task.data);
-        taskResult = geminiResponse.text;
+        await log(`Using Claude to process task ${task.id}`, config.id, config.sharedDir);
+        const claudeResponse = await claudeService.processAgentTask(task.data);
+        taskResult = claudeResponse.text;
         
-        if (geminiResponse.usage) {
-          await log(`Gemini usage - Tokens: ${geminiResponse.usage.totalTokens}`, config.id, config.sharedDir);
+        if (claudeResponse.usage) {
+          await log(`Claude usage - Tokens: ${claudeResponse.usage.totalTokens}`, config.id, config.sharedDir);
         }
-      } catch (geminiError: any) {
-        await log(`Gemini processing failed: ${geminiError.message}`, config.id, config.sharedDir);
+      } catch (claudeError: any) {
+        await log(`Claude processing failed: ${claudeError.message}`, config.id, config.sharedDir);
         taskResult = `Fallback processing: ${taskResult}`;
       }
     } else {
@@ -309,38 +313,84 @@ async function setupSubscriptions(nc: NatsConnection, agentDir: string): Promise
 }
 
 /**
- * Initialize Gemini service if API key is available
+ * Initialize Claude service if API key is available
  */
-async function initializeGemini(): Promise<void> {
-  if (!config.geminiApiKey) {
-    await log('Gemini API key not provided - running without Gemini capabilities', config.id, config.sharedDir);
+async function initializeClaude(): Promise<void> {
+  if (!config.claudeApiKey) {
+    await log('Claude API key not provided - running without Claude capabilities', config.id, config.sharedDir);
     return;
   }
 
-  if (!config.geminiModel) {
-    await log('Gemini model not specified - using default gemini-2.5-pro', config.id, config.sharedDir);
+  if (!config.claudeModel) {
+    await log('Claude model not specified - using default claude-3-5-sonnet-20241022', config.id, config.sharedDir);
   }
 
   try {
-    const geminiConfig: GeminiConfig = {
-      apiKey: config.geminiApiKey!,
-      model: config.geminiModel || 'gemini-2.5-pro',
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 2048
-      }
+    const claudeConfig: ClaudeConfig = {
+      apiKey: config.claudeApiKey!,
+      model: config.claudeModel || 'claude-3-5-sonnet-20241022',
+      maxTokens: 2048,
+      temperature: 0.7
     };
 
-    geminiService = new GeminiService(geminiConfig, config.id, config.sharedDir);
-    await geminiService.initialize();
+    claudeService = new ClaudeService(claudeConfig, config.id, config.sharedDir);
+    await claudeService.initialize();
     
-    await log(`Gemini service initialized for ${config.id}`, config.id, config.sharedDir);
+    await log(`Claude service initialized for ${config.id}`, config.id, config.sharedDir);
   } catch (error: any) {
-    await log(`Failed to initialize Gemini service: ${error.message}`, config.id, config.sharedDir);
-    await log('Agent will continue without Gemini capabilities', config.id, config.sharedDir);
-    geminiService = null;
+    await log(`Failed to initialize Claude service: ${error.message}`, config.id, config.sharedDir);
+    await log('Agent will continue without Claude capabilities', config.id, config.sharedDir);
+    claudeService = null;
+  }
+}
+
+/**
+ * Initialize MCP communication client
+ */
+async function initializeMCPClient(nc: NatsConnection): Promise<void> {
+  try {
+    mcpClient = new MCPCommunicationClient(config.id, config.sharedDir, nc);
+    
+    // Try to initialize MCP client
+    // Note: This will fail if MCP server is not available, but agent continues
+    try {
+      await mcpClient.initialize();
+      
+      // Register message handlers
+      mcpClient.registerMessageHandler('command', async (message) => {
+        await log(`Received command from ${message.from}: ${message.message}`, config.id, config.sharedDir);
+        // Process commands here
+      });
+      
+      mcpClient.registerMessageHandler('query', async (message) => {
+        await log(`Received query from ${message.from}: ${message.message}`, config.id, config.sharedDir);
+        
+        // Process query with Claude if available
+        if (claudeService && message.metadata?.useClaude) {
+          try {
+            const response = await claudeService.processAgentTask(message.message);
+            await mcpClient!.sendResponse(message.from, response.text, message.metadata);
+          } catch (error: any) {
+            await mcpClient!.sendResponse(message.from, `Error processing query: ${error.message}`, message.metadata);
+          }
+        } else {
+          await mcpClient!.sendResponse(message.from, `Processed query: ${message.message}`, message.metadata);
+        }
+      });
+      
+      await log(`MCP client initialized for ${config.id}`, config.id, config.sharedDir);
+      
+      // Send initial greeting to other agents
+      await mcpClient.broadcastMessage(`Agent ${config.id} is online and ready for communication`);
+      
+    } catch (error: any) {
+      await log(`MCP client not available: ${error.message}`, config.id, config.sharedDir);
+      await log('Agent will continue without MCP communication capabilities', config.id, config.sharedDir);
+      mcpClient = null;
+    }
+  } catch (error: any) {
+    await log(`Failed to create MCP client: ${error.message}`, config.id, config.sharedDir);
+    mcpClient = null;
   }
 }
 
@@ -348,16 +398,19 @@ async function initializeGemini(): Promise<void> {
  * Main agent entry point
  */
 async function main(): Promise<void> {
-  await log(`Agent ${config.id} starting with config: ${JSON.stringify({...config, geminiApiKey: config.geminiApiKey ? '***' : undefined})}`, config.id, config.sharedDir);
+  await log(`Agent ${config.id} starting with config: ${JSON.stringify({...config, claudeApiKey: config.claudeApiKey ? '***' : undefined})}`, config.id, config.sharedDir);
   
   // Ensure directories exist
   const { agentDir } = await ensureAgentDirs(config.sharedDir, config.id);
   
-  // Initialize Gemini service
-  await initializeGemini();
+  // Initialize Claude service
+  await initializeClaude();
   
   // Connect to NATS
   const nc = await connectToNATS();
+  
+  // Initialize MCP client for inter-agent communication
+  await initializeMCPClient(nc);
   
   // Setup subscriptions and message handlers
   await setupSubscriptions(nc, agentDir);
@@ -368,7 +421,12 @@ async function main(): Promise<void> {
   // Setup graceful shutdown
   setupShutdownHandlers(nc, heartbeatInterval);
   
-  await log(`Agent ${config.id} is running and ready to process tasks${geminiService ? ' (with Gemini)' : ' (without Gemini)'}`, config.id, config.sharedDir);
+  // Log capabilities
+  const capabilities = [];
+  if (claudeService) capabilities.push('Claude AI');
+  if (mcpClient) capabilities.push('MCP Communication');
+  
+  await log(`Agent ${config.id} is running with capabilities: ${capabilities.join(', ') || 'basic processing'}`, config.id, config.sharedDir);
 }
 
 // Start the agent
