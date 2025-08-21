@@ -37,6 +37,6 @@ COPY --from=builder /app/dist ./dist
 # Clean up build tools after installation
 RUN apt-get purge -y make g++ && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
-EXPOSE 3001
+EXPOSE 3101
 
 CMD ["node", "dist/server.js"]

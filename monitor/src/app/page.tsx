@@ -32,7 +32,7 @@ export default function Monitor() {
   });
 
   useEffect(() => {
-    const socketUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3001';
+    const socketUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3101';
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,

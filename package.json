@@ -31,7 +31,7 @@
     "flock:bash:agent2": "osascript -e 'tell app \"Terminal\" to do script \"cd \\\"$(pwd)\\\" && npm run flock:shell:agent2\"'",
     "flock:bash:agent3": "osascript -e 'tell app \"Terminal\" to do script \"cd \\\"$(pwd)\\\" && npm run flock:shell:agent3\"'",
     "flock:bash:all": "npm run flock:bash:agent1 && npm run flock:bash:agent2 && npm run flock:bash:agent3",
-    "flock:monitor": "open http://localhost:3000",
+    "flock:monitor": "open http://localhost:3100",
     "flock:monitor:dev": "cd monitor && npm install && npm run dev",
     "flock:monitor:build": "cd monitor && npm run build",
     "flock:monitor:server": "cd monitor-old && npm install && npm run dev",
@@ -43,7 +43,7 @@
     "agents:type-check": "cd agents && npm run type-check",
     "agents:clean": "cd agents && npm run clean",
     "dbuild": "docker build -t ai-flock .",
-    "drun": "docker run -p 3000:3000 ai-flock",
+    "drun": "docker run -p 3100:3100 ai-flock",
     "dup": "docker-compose up -d",
     "ddown": "docker-compose down",
     "dlogs": "docker-compose logs -f"

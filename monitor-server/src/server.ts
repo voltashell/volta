@@ -8,7 +8,7 @@ const docker = new Docker();
 const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:3000', 'http://monitor:3000', '*'],
+    origin: ['http://localhost:3100', 'http://monitor:3100', '*'],
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -421,7 +421,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3101;
 httpServer.listen(PORT, () => {
   console.log(`Docker terminal server listening on port ${PORT}`);
 });

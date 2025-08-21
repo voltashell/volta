@@ -68,7 +68,7 @@ export default function WebTerminal({ containerName }: TerminalProps) {
     fitAddonRef.current = fitAddon
 
     // Connect to socket - use the same connection as the main app
-    const socketUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3001';
+    const socketUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3101';
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling']
     })
