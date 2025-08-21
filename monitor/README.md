@@ -191,7 +191,7 @@ Available in terminals:
 ```bash
 NODE_ENV=production           # Production mode
 NEXT_TELEMETRY_DISABLED=1    # Disable Next.js telemetry
-PORT=3000                    # Server port
+PORT=3100                    # Server port
 HOSTNAME=0.0.0.0            # Bind address
 ```
 
@@ -236,7 +236,7 @@ docker build --no-cache -t ai-flock-monitor .
 docker logs monitor
 
 # Test WebSocket connection
-curl -I http://localhost:3000
+curl -I http://localhost:3100
 
 # Verify Docker access
 docker exec monitor docker ps

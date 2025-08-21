@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-3. Make sure the backend monitor server is running on port 3001:
+3. Make sure the backend monitor server is running on port 3101:
 ```bash
 cd ../monitor
 npm run dev
