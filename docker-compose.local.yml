@@ -33,14 +33,15 @@ services:
     environment:
       - AGENT_ID=agent-1
       - NATS_URL=nats://nats:4222
-      - SHARED_DIR=/home/shared
+      - SHARED_DIR=/shared
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - CLAUDE_MODEL=claude-3-5-sonnet-20241022
       - CUSTOM_REPO_PATH=${CUSTOM_REPO_PATH:-}
       - REPO_MOUNT_PATH=/home/workspace/repo
     volumes:
-      - ./shared:/home/shared
+      - ./shared:/shared
       - ${CUSTOM_REPO_PATH:-/tmp/empty}:/home/workspace/repo:rw
+      - ./shared/agents/agent-1/.claude:/home/.claude:rw
     networks:
       - bus
     tmpfs:
@@ -69,14 +70,15 @@ services:
     environment:
       - AGENT_ID=agent-2
       - NATS_URL=nats://nats:4222
-      - SHARED_DIR=/home/shared
+      - SHARED_DIR=/shared
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - CLAUDE_MODEL=claude-3-5-sonnet-20241022
       - CUSTOM_REPO_PATH=${CUSTOM_REPO_PATH:-}
       - REPO_MOUNT_PATH=/home/workspace/repo
     volumes:
-      - ./shared:/home/shared
+      - ./shared:/shared
       - ${CUSTOM_REPO_PATH:-/tmp/empty}:/home/workspace/repo:rw
+      - ./shared/agents/agent-2/.claude:/home/.claude:rw
     networks:
       - bus
     tmpfs:
@@ -105,14 +107,15 @@ services:
     environment:
       - AGENT_ID=agent-3
       - NATS_URL=nats://nats:4222
-      - SHARED_DIR=/home/shared
+      - SHARED_DIR=/shared
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - CLAUDE_MODEL=claude-3-5-sonnet-20241022
       - CUSTOM_REPO_PATH=${CUSTOM_REPO_PATH:-}
       - REPO_MOUNT_PATH=/home/workspace/repo
     volumes:
-      - ./shared:/home/shared
+      - ./shared:/shared
       - ${CUSTOM_REPO_PATH:-/tmp/empty}:/home/workspace/repo:rw
+      - ./shared/agents/agent-3/.claude:/home/.claude:rw
     networks:
       - bus
     tmpfs:
