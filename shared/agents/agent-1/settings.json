@@ -1,0 +1,13 @@
+{
+    "permissions": {
+        "allow": [
+            "Read(**)",
+            "Write(**)",
+            "Execute(**)",
+            "Bash(**)"
+        ],
+        "deny": []
+    },
+    "disableBypassPermissionsMode": "disable",
+    "enableAllProjectMcpServers": true
+}
