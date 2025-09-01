@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "flock:up": "./scripts/init-agents.sh && docker-compose -f docker-compose.local.yml up -d --build",
-    "flock:down": "docker-compose -f docker-compose.local.yml down",
+    "flock:down": "docker-compose -f docker-compose.local.yml down && ./scripts/init-agents.sh",
     "flock:clean": "rm -rf shared/agents/*/task-*.json shared/logs/*.log || true",
     "flock:clear-shared": "./scripts/clear-shared.sh",
     "flock:restart": "npm run flock:down && npm run flock:clean && npm run flock:up",

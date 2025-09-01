@@ -160,7 +160,7 @@ export CUSTOM_REPO_PATH="~/repositories/my-codebase"
 docker-compose -f docker-compose.local.yml up --build
 
 # 3. Access via web terminal
-# Navigate to http://localhost:3000
+# Navigate to http://localhost:4000
 # Click Terminal tab for any agent
 # cd /workspace/repo
 ```

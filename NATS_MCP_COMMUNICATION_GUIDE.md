@@ -14,7 +14,7 @@ This guide explains how to effectively use NATS and MCP (Model Context Protocol)
 ### MCP Server
 - **Purpose**: Structured agent-to-agent communication
 - **Use Cases**: Service discovery, capability requests, direct messaging
-- **Port**: WebSocket on port 3002
+- **Port**: WebSocket on port 4002
 
 ## Communication Patterns
 
@@ -357,7 +357,7 @@ NATS_URL=nats://nats:4222
 
 # MCP Configuration
 MCP_ENABLED=true
-MCP_PORT=3002
+MCP_PORT=4002
 MCP_TIMEOUT=30000
 
 # Agent Configuration
@@ -390,7 +390,7 @@ services:
       - NATS_URL=nats://nats:4222
       - LOG_LEVEL=info
     ports:
-      - "3002:3002"
+      - "4002:4002"
       
   agent-1:
     build: ./agents
@@ -530,7 +530,7 @@ curl -i -N -H "Connection: Upgrade" \
      -H "Upgrade: websocket" \
      -H "Sec-WebSocket-Version: 13" \
      -H "Sec-WebSocket-Key: test" \
-     http://localhost:3002
+     http://localhost:4002
 ```
 
 #### Agent Discovery Problems

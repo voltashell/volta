@@ -1,22 +1,27 @@
 #!/bin/bash
 
-# Global environment setup for agent containers
+# This script is sourced by /etc/profile.d/agent-env.sh inside agent containers.
+# Keep it minimal and robust; avoid dependencies on other scripts.
 
-# Export environment variables
-export HOME="/shared/agents/${AGENT_ID}"
-export GEMINI_CONFIG_DIR="/shared/agents/${AGENT_ID}/.gemini"
+# Terminal settings
+export TERM=xterm-256color
 
-# Load Gemini configuration if it exists
-if [ -f "$GEMINI_CONFIG_DIR/.env" ]; then
-    export $(grep -v '^#' "$GEMINI_CONFIG_DIR/.env" | xargs) 2>/dev/null
+# PATH enhancements (prepend common locations, preserve existing PATH)
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+
+# If a custom repository is mounted, expose a consistent path for convenience
+if [ -n "$CUSTOM_REPO_PATH" ] && [ -d "/home/workspace/repo" ]; then
+  export REPO_PATH="/home/workspace/repo"
 fi
 
-# Ensure PATH includes our custom scripts
-export PATH="/usr/local/bin:$PATH"
+# Helpful aliases for interactive shells
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
 
-# Create aliases
-alias gp="gemini -p"
-alias gi="gc"
+# Prompt showing the agent id when available
+if [ -n "$AGENT_ID" ]; then
+  export PS1='[\u@'"$AGENT_ID"' \W]\\$ '
+fi
 
-# Set custom prompt
-PS1="\[\033[1;34m\]${AGENT_ID}\[\033[0m\]:\w\$ "
+
