@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { useAuth0 } from '@auth0/auth0-react';
 import ContainerWindow from '@/components/ContainerWindow';
 import { 
   ContainerName, 
@@ -30,8 +31,11 @@ export default function Monitor() {
     'agent-3': [],
     'nats': []
   });
+  const { user, isAuthenticated, loginWithRedirect, logout } = useAuth0();
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const socketUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3101';
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -83,8 +87,9 @@ export default function Monitor() {
 
     return () => {
       newSocket.close();
+      setSocket(null);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCommand = (command: string, containerName: ContainerName) => {
     if (!socket) return;
@@ -134,6 +139,15 @@ export default function Monitor() {
   };
 
   const totalStats = getTotalStats();
+  if (!isAuthenticated) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-900 text-white">
+        <button onClick={() => loginWithRedirect()} className="text-blue-400">
+          Login to continue
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-900 text-white overflow-hidden">
@@ -151,19 +165,28 @@ export default function Monitor() {
       {/* Header */}
       <header className="bg-gray-800 px-5 py-3 border-b border-gray-600 flex justify-between items-center">
         <h1 className="text-lg font-bold text-green-400">AI Flock Monitor</h1>
-        <div className="flex space-x-6 text-xs">
-          <div className="text-center">
-            <div className="text-gray-400">Containers</div>
-            <div className="text-green-400 font-bold">{totalStats.containers}</div>
+        <div className="flex items-center space-x-6 text-xs">
+          <div className="flex space-x-6">
+            <div className="text-center">
+              <div className="text-gray-400">Containers</div>
+              <div className="text-green-400 font-bold">{totalStats.containers}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-gray-400">CPU</div>
+              <div className="text-green-400 font-bold">{totalStats.cpu}%</div>
+            </div>
+            <div className="text-center">
+              <div className="text-gray-400">Memory</div>
+              <div className="text-green-400 font-bold">{totalStats.memory}MB</div>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-gray-400">CPU</div>
-            <div className="text-green-400 font-bold">{totalStats.cpu}%</div>
-          </div>
-          <div className="text-center">
-            <div className="text-gray-400">Memory</div>
-            <div className="text-green-400 font-bold">{totalStats.memory}MB</div>
-          </div>
+          <span className="text-green-400">{user?.name}</span>
+          <button
+            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+            className="text-blue-400"
+          >
+            Logout
+          </button>
         </div>
       </header>
 

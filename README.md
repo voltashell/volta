@@ -87,6 +87,24 @@ cd /workspace/repo
 ls -la
 ```
 
+### Authentication
+The monitor uses Auth0 for user login. Configure the following environment variables:
+```bash
+NEXT_PUBLIC_AUTH0_DOMAIN="YOUR_DOMAIN.auth0.com"
+NEXT_PUBLIC_AUTH0_CLIENT_ID="your_client_id"
+NEXT_PUBLIC_AUTH0_CALLBACK_URL="http://localhost:3000"
+```
+The dashboard and Electron app are inaccessible until you sign in with Auth0. After signing in on the web dashboard, downloading and launching the Electron app will reuse the same Auth0 session so you're signed in automatically.
+
+#### Electron App (Experimental)
+```bash
+# Launch monitor in an Electron window
+npm run electron:dev
+
+# Build a distributable Electron package
+npm run electron:build
+```
+
 ### Using the Web Interface
 1. **View Logs**: Click the "Logs" tab to see real-time container logs
 2. **Access Terminal**: Click the "Terminal" tab for full shell access
