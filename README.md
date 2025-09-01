@@ -69,7 +69,7 @@ export GEMINI_API_KEY="your_api_key_here"
 docker-compose -f docker-compose.local.yml up --build
 
 # 3. Open the monitor dashboard
-open http://localhost:3000
+open http://localhost:4000
 ```
 
 #### With Custom Repository
@@ -281,7 +281,7 @@ ls -la  # Your repository files
 ```
 
 ### Web Terminal Access
-1. Open the monitor at http://localhost:3000
+1. Open the monitor at http://localhost:4000
 2. Click on any agent's Terminal tab
 3. Navigate to your repository:
    ```bash
@@ -371,7 +371,7 @@ docker ps  # Should list all containers
 ### Terminal Connection Issues
 ```bash
 # Verify WebSocket connection
-curl -I http://localhost:3000
+curl -I http://localhost:4000
 
 # Check container TTY support
 docker exec -it agent-1 tty
