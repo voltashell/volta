@@ -604,7 +604,7 @@ class AgentCommunicationServer {
     };
   }
 
-  async startWebSocketServer(port: number = 3002): Promise<void> {
+  async startWebSocketServer(port: number = 4002): Promise<void> {
     // Create HTTP server
     this.httpServer = http.createServer();
     
@@ -658,7 +658,7 @@ class AgentCommunicationServer {
     if (mode === 'stdio') {
       await this.startStdioServer();
     } else if (mode === 'websocket') {
-      const port = parseInt(process.env.MCP_PORT || '3002');
+      const port = parseInt(process.env.MCP_PORT || '4002');
       await this.startWebSocketServer(port);
     } else {
       // Start both

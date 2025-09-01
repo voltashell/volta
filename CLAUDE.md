@@ -77,8 +77,6 @@ npm run flock:logs:agent3
 node scripts/send-message.js
 node scripts/test-client.js
 
-# Test with custom repository
-./scripts/start-with-repo.sh
 ```
 
 ## Architecture & Key Components
@@ -176,7 +174,7 @@ The system uses Docker containers for isolation with the following structure:
 1. **Making Agent Changes**: Edit TypeScript files in `/agents/src/`, rebuild with `npm run agents:build`, then restart containers
 2. **Monitor Updates**: Edit React components in `/monitor/src/`, changes hot-reload in dev mode
 3. **Testing Agent Communication**: Use scripts in `/scripts/` directory for sending test messages
-4. **Debugging**: Access agent terminals via web UI at http://localhost:3000 or use `docker exec`
+4. **Debugging**: Access agent terminals via web UI at http://localhost:4000 or use `docker exec`
 5. **Custom Repository**: Set `CUSTOM_REPO_PATH` in `.env` to mount external codebases into agents
 
 ## Key Files to Understand
