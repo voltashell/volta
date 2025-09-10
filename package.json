@@ -31,6 +31,16 @@
     "flock:bash:agent2": "osascript -e 'tell app \"Terminal\" to do script \"cd \\\"$(pwd)\\\" && npm run flock:shell:agent2\"'",
     "flock:bash:agent3": "osascript -e 'tell app \"Terminal\" to do script \"cd \\\"$(pwd)\\\" && npm run flock:shell:agent3\"'",
     "flock:bash:all": "npm run flock:bash:agent1 && npm run flock:bash:agent2 && npm run flock:bash:agent3",
+<<<<<<< HEAD
+=======
+    "flock:monitor": "open http://localhost:3100",
+    "flock:monitor:dev": "cd monitor && npm install && npm run dev",
+    "flock:monitor:build": "cd monitor && npm run build",
+    "flock:monitor:server": "cd monitor-server && npm install && npm run dev",
+    "flock:monitor:full": "npm run flock:monitor:server & npm run flock:monitor:dev",
+    "electron:dev": "electron electron/main.js",
+    "electron:build": "npm run flock:monitor:build && electron-builder",
+>>>>>>> main
     "flock:shared": "ls -la shared/agents/ && ls -la shared/logs/",
     "flock:cli-monitor": "while true; do clear; docker ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'; echo; docker stats --no-stream agent-1 agent-2 agent-3 nats 2>/dev/null || true; sleep 2; done",
     "agents:build": "cd agents && npm run build",
@@ -44,11 +54,26 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "electron": "^37.4.0",
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "dockerode": "^4.0.7",
     "nats": "^2.29.3",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "@auth0/auth0-react": "^2.4.0"
+  },
+  "build": {
+    "appId": "com.ai-flock.app",
+    "files": [
+      "electron/**/*",
+      "monitor/**",
+      "monitor-server/**",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.js"
+    }
   }
 }
