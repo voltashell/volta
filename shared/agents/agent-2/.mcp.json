@@ -1,8 +1,0 @@
-{
-    "mcpServers": {
-        "local-server": {
-            "type": "http",
-            "url": "http://localhost:3102"
-        }
-    }
-}
