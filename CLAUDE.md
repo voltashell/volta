@@ -77,6 +77,12 @@ npm run flock:logs:agent3
 node scripts/send-message.js
 node scripts/test-client.js
 
+# Check Gemini API integration
+docker exec agent-1 gemini models list
+docker exec agent-1 gc  # Interactive chat
+
+# Access all agent terminals at once
+npm run flock:bash:all
 ```
 
 ## Architecture & Key Components
