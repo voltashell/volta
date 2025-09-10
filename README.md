@@ -302,132 +302,38 @@ ls -la  # Your repository files
 1. Open the monitor at http://localhost:4000
 2. Click on any agent's Terminal tab
 3. Navigate to your repository:
+AI Flock runs multiple instances of Claude in isolated Docker containers. Each agent connects to a shared NATS message bus and uses a shared directory for exchanging data.
+
+## Usage
+
+1. Set the required environment variables:
    ```bash
-   cd /workspace/repo
-   ls -la
-   
-   # Use Gemini to analyze code
-   gp "Explain the structure of this repository"
-   
-   # Edit files directly
-   vim main.py
+   export ANTHROPIC_API_KEY="your_api_key"
+   ```
+2. Build and start the containers:
+   ```bash
+   npm run flock:up
+   ```
+3. View container status or logs:
+   ```bash
+   npm run flock:status
+   npm run flock:logs
+   ```
+4. Stop the system:
+   ```bash
+   npm run flock:down
    ```
 
-### Security Considerations
-- **Trust**: Only mount repositories you trust agents to modify
-- **Permissions**: All agents share the same repository access
-- **Backups**: Use version control to track changes
-- **Write Access**: Agents can create, modify, and delete files
+## Scripts
+- `flock:up` – initialize directories and start NATS plus three Claude agents.
+- `flock:down` – stop all containers and reset directories.
+- `flock:status` – show running containers.
+- `flock:shell:agent1/2/3` – open a shell in an agent container.
 
-### Troubleshooting
-```bash
-# Validate repository path
-./scripts/validate-repo-path.sh
+## Project Structure
+- `agents/` – Claude agent implementation and Dockerfile.
+- `scripts/` – helper scripts for initializing volumes.
+- `docker-compose.local.yml` – defines agent and NATS containers.
+- `shared/` – mounted volumes for agent data.
 
-# Check mount in container
-docker exec agent-1 ls -la /workspace/repo
-
-# Permission issues on macOS
-# Add your user ID to .env:
-UID=$(id -u)
-GID=$(id -g)
-```
-
-## Security Features
-
-### Container Security
-- **User isolation**: Each agent runs as non-root user
-- **Writable workspace**: Limited writable access for development
-- **Resource limits**: CPU (0.5 cores), memory (512MB)
-- **Network isolation**: Agents can only communicate via NATS
-
-### Web Interface Security
-- **Docker socket access**: Monitor runs as root to manage containers
-- **Local network binding**: Dashboard only accessible on localhost
-- **No authentication**: Intended for development use only
-
-### Terminal Security
-- **PTY isolation**: Each terminal session is isolated per user
-- **Container boundaries**: Terminal access is limited to container scope
-- **Process isolation**: Each WebSocket connection gets its own PTY
-
-## Deployment Options
-
-### 1. Local Development (Recommended)
-**Best for:** Development, testing, full feature access
-- ✅ Web terminals and real-time monitoring
-- ✅ Easy debugging and log analysis
-- ✅ Interactive Gemini CLI access
-- ✅ File system development capabilities
-
-### 2. Docker Desktop Only
-**Best for:** Lightweight testing without monitor
-- ✅ Fast startup and low resource usage
-- ❌ No web interface or terminals
-- ❌ Manual container management required
-
-### 3. Traditional VM (Legacy)
-**Best for:** Maximum isolation testing
-- ✅ Hardware-level VM isolation
-- ❌ No web monitoring interface
-- ❌ More complex setup and management
-
-## Troubleshooting
-
-### Monitor Issues
-```bash
-# Check monitor logs
-docker logs monitor
-
-# Rebuild monitor with dependencies
-cd monitor && npm install && docker-compose up --build
-
-# Check Docker socket access
-docker ps  # Should list all containers
-```
-
-### Terminal Connection Issues
-```bash
-# Verify WebSocket connection
-curl -I http://localhost:4000
-
-# Check container TTY support
-docker exec -it agent-1 tty
-
-# Test node-pty installation
-docker exec monitor node -e "console.log(require('node-pty'))"
-```
-
-### Gemini CLI Issues
-```bash
-# Check API key configuration
-docker exec agent-1 cat /shared/agents/agent-1/.gemini/.env
-
-# Test Gemini CLI directly
-docker exec agent-1 gemini models list
-
-# Verify environment
-docker exec agent-1 env | grep GEMINI
-```
-
-### Common Issues
-- **Terminal not loading**: Check browser console for WebSocket errors
-- **Gemini auth errors**: Verify GEMINI_API_KEY is set correctly
-- **Container connectivity**: Ensure Docker daemon is running
-- **Build failures**: Use `--no-cache` flag for clean builds
-
-## Development Workflow
-
-### Adding New Features
-1. **Agent modifications**: Edit TypeScript files in `agents/src/`
-2. **Monitor updates**: Modify React components in `monitor/src/`  
-3. **Rebuild and test**: `docker-compose -f docker-compose.local.yml up --build`
-4. **Access terminals**: Use web interface for interactive testing
-
-### Debugging Agents
-1. **Web terminal**: Click Terminal tab in monitor dashboard
-2. **Interactive debugging**: Use `gc` for AI assistance with debugging
-3. **File inspection**: Create and edit files directly in terminals
-4. **Log analysis**: Switch between Terminal and Logs tabs
-
-The AI Flock system now provides a complete development and monitoring environment with full terminal access, making it easy to develop, test, and debug distributed AI agent systems.
+The repository is focused solely on Docker-based deployment; no virtual machines or monitoring front-ends are included.
