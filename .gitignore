@@ -27,6 +27,31 @@
 **/*.seed
 **/*.pid.lock
 
+# Shared directories (agent data, logs, etc.)
+shared/
+
+# Environment files
+.env
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+.next/
+**/.next/
+.dist/
+**/.dist/
+dist/
+**/dist/
+
+
+# Logs
+logs/
+AGENTS.md
+
+.claude
+
 # Coverage directory used by tools like istanbul
 **/coverage/
 

@@ -13,8 +13,5 @@ node_modules/
 dist/
 **/dist/
 
-# Shared directories
-shared/*
-
 # Logs
 logs/
