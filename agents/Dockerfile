@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json tsconfig.json ./
 
 # Install all dependencies (including dev dependencies)
-RUN npm ci && npm cache clean --force
+RUN npm ci
 
 # Copy TypeScript source code
 COPY src/ ./src/
@@ -76,7 +76,7 @@ RUN echo '#!/bin/bash' > /home/agent/.bashrc && \
     echo '  export CLAUDE_STARTED=1' >> /home/agent/.bashrc && \
     echo '  echo "🚀 Starting Claude Code AI Assistant..."' >> /home/agent/.bashrc && \
     echo '  echo "Type exit to leave Claude and access the shell"' >> /home/agent/.bashrc && \
-    echo '  cd /home' >> /home/agent/.bashrc && \
+    echo '  cd ~' >> /home/agent/.bashrc && \
     echo '  claude --output-format json' >> /home/agent/.bashrc && \
     echo 'fi' >> /home/agent/.bashrc
 
@@ -89,11 +89,11 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
     echo '# Copy authentication template to home directory for all agents' >> /entrypoint.sh && \
     echo 'echo "📋 Copying authentication template to home directory..."' >> /entrypoint.sh && \
-    echo 'cp -r /app/set-auth/. /home/ 2>/dev/null || true' >> /entrypoint.sh && \
-    echo 'chown -R agent:agent /home' >> /entrypoint.sh && \
-    echo 'echo "✅ Authentication template copied to /home"' >> /entrypoint.sh && \
+    echo 'cp -r /app/set-auth/. /home/agent/ 2>/dev/null || true' >> /entrypoint.sh && \
+    echo 'chown -R agent:agent /home/agent 2>/dev/null || true' >> /entrypoint.sh && \
+    echo 'echo "✅ Authentication template copied to $HOME"' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
-    echo 'export HOME="/home"' >> /entrypoint.sh && \
+    echo 'export HOME="/home/agent"' >> /entrypoint.sh && \
     # echo 'node dist/index.js &' >> /entrypoint.sh && \
     echo 'AGENT_PID=$!' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \

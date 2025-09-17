@@ -267,6 +267,50 @@ Configuration includes:
 - `GEMINI_API_KEY`: Your API key
 - `GEMINI_MODEL`: Model to use (default: gemini-1.5-flash)
 
+## Troubleshooting
+
+### Monitor Container Issues
+
+#### node-pty Native Module Error
+If you see errors like `Cannot find module '../build/Debug/pty.node'` or `invalid ELF header`, this indicates a platform/architecture mismatch with the `node-pty` native module.
+
+**Symptoms:**
+```
+Error: Cannot find module '../build/Debug/pty.node'
+Error: /app/node_modules/node-pty/build/Release/pty.node: invalid ELF header
+```
+
+**Solution:**
+The Dockerfile has been updated to rebuild native modules in the production stage. Force a rebuild:
+
+```bash
+# Clear Docker build cache and rebuild
+docker-compose -f docker-compose.local.yml down
+docker system prune -f
+docker-compose -f docker-compose.local.yml up --build --force-recreate
+```
+
+**Root Cause:** This typically happens when building on Apple Silicon (M1/M2) but running on x86_64, or when Docker uses cached layers from a different architecture.
+
+### General Issues
+
+#### Container Won't Start
+```bash
+# Check container logs
+docker-compose -f docker-compose.local.yml logs monitor
+
+# Restart specific container
+docker-compose -f docker-compose.local.yml restart monitor
+```
+
+#### Port Already in Use
+```bash
+# Find process using port 4000
+lsof -i :4000
+
+# Kill process or change port in docker-compose.local.yml
+```
+
 ## Custom Repository Access
 
 ### Overview

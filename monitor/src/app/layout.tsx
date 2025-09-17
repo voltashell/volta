@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import AuthProvider from "./AuthProvider";
 import "./globals.css";
+import { Auth0Provider } from "@auth0/nextjs-auth0";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -15,7 +15,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <AuthProvider>{children}</AuthProvider>
+	  {children}
+        {/* <Auth0Provider></Auth0Provider> */}
       </body>
     </html>
   );

@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "flock:up": "./scripts/init-agents.sh && docker-compose -f docker-compose.local.yml up -d --build",
-    "flock:down": "docker-compose -f docker-compose.local.yml down && ./scripts/init-agents.sh",
+    "flock:down": "docker-compose -f docker-compose.local.yml down",
     "flock:clean": "rm -rf shared/agents/*/task-*.json shared/logs/*.log || true",
     "flock:clear-shared": "./scripts/clear-shared.sh",
     "flock:restart": "npm run flock:down && npm run flock:clean && npm run flock:up",
@@ -31,8 +31,6 @@
     "flock:bash:agent2": "osascript -e 'tell app \"Terminal\" to do script \"cd \\\"$(pwd)\\\" && npm run flock:shell:agent2\"'",
     "flock:bash:agent3": "osascript -e 'tell app \"Terminal\" to do script \"cd \\\"$(pwd)\\\" && npm run flock:shell:agent3\"'",
     "flock:bash:all": "npm run flock:bash:agent1 && npm run flock:bash:agent2 && npm run flock:bash:agent3",
-<<<<<<< HEAD
-=======
     "flock:monitor": "open http://localhost:3100",
     "flock:monitor:dev": "cd monitor && npm install && npm run dev",
     "flock:monitor:build": "cd monitor && npm run build",
@@ -40,7 +38,6 @@
     "flock:monitor:full": "npm run flock:monitor:server & npm run flock:monitor:dev",
     "electron:dev": "electron electron/main.js",
     "electron:build": "npm run flock:monitor:build && electron-builder",
->>>>>>> main
     "flock:shared": "ls -la shared/agents/ && ls -la shared/logs/",
     "flock:cli-monitor": "while true; do clear; docker ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'; echo; docker stats --no-stream agent-1 agent-2 agent-3 nats 2>/dev/null || true; sleep 2; done",
     "agents:build": "cd agents && npm run build",

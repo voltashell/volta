@@ -2,18 +2,21 @@
   "name": "monitor-next",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "tsx server.ts",
+    "build": "next build && tsc --project tsconfig.server.json",
+    "start": "node dist/server.js",
     "lint": "next lint"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.4.0",
+    "@auth0/nextjs-auth0": "^4.9.0",
+    "nats": "^2.28.2",
     "next": "15.4.6",
     "react": "^19.1.0",
     "react-dom": "19.1.0",
+    "node-pty": "^1.0.0",
+    "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tailwindcss-scrollbar": "^0.1.0",
     "xterm": "^5.3.0",
@@ -22,14 +25,15 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19.1.7",
+    "autoprefixer": "^10.4.20",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
-    "tailwindcss": "^4",
-    "ts-node": "^10.9.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "tsx": "^4.7.0",
     "typescript": "^5"
   }
 }
