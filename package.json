@@ -1,5 +1,5 @@
 {
-  "name": "volta-shell",
+  "name": "ai-flock",
   "version": "1.0.0",
   "description": "A TypeScript project",
   "main": "dist/index.js",
@@ -63,7 +63,8 @@
     "@auth0/auth0-react": "^2.4.0"
   },
   "build": {
-    "appId": "com.volta-shell.app",
+    "appId": "com.ai-flock.app",
+    "productName": "AI Flock",
     "files": [
       "monitor/electron/**/*",
       "monitor/**",

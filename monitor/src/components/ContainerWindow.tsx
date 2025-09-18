@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { ContainerName, LogData, ContainerStat, CommandResult } from '@/types/monitor';
+import { useState, useEffect } from 'react';
+import { ContainerName, ContainerStat } from '@/types/monitor';
 import dynamic from 'next/dynamic';
 
 const Terminal = dynamic(() => import('./Terminal'), { 
@@ -12,97 +12,18 @@ const Terminal = dynamic(() => import('./Terminal'), {
 interface ContainerWindowProps {
   name: ContainerName;
   displayName: string;
-  logs: LogData[];
-  commandResults: CommandResult[];
   stats?: ContainerStat;
-  onRestart: (containerName: ContainerName) => void;
-  onClearLogs: (containerName: ContainerName) => void;
-  onCommand: (command: string, containerName: ContainerName) => void;
   className?: string;
 }
 
-const containerColors: Record<ContainerName, string> = {
-  'agent-1': 'text-red-400',
-  'agent-2': 'text-primary-light', 
-  'agent-3': 'text-blue-400',
-  'nats': 'text-yellow-400',
-};
 
 export default function ContainerWindow({
   name,
   displayName,
-  logs,
-  commandResults,
   stats,
-  onRestart,
-  onClearLogs,
-  onCommand,
   className
 }: ContainerWindowProps) {
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
-  const [command, setCommand] = useState('');
-  const [activeTab, setActiveTab] = useState<'logs' | 'terminal'>('terminal');
-  const logWindowRef = useRef<HTMLDivElement>(null);
 
-  // Combine logs and command results into a single timeline
-  type LogEntry = LogData & { isCommand?: boolean };
-  
-  const allEntries: LogEntry[] = [...logs, ...commandResults.map(result => ({
-    container: name,
-    timestamp: result.timestamp,
-    data: `$ ${result.command}\n${result.output || ''}${result.error ? `\nError: ${result.error}` : ''}`,
-    isError: !!result.error,
-    isCommand: true
-  }))].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-  useEffect(() => {
-    if (isScrolledToBottom && logWindowRef.current) {
-      logWindowRef.current.scrollTop = logWindowRef.current.scrollHeight;
-    }
-  }, [allEntries, isScrolledToBottom]);
-
-  const handleScroll = () => {
-    if (!logWindowRef.current) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = logWindowRef.current;
-    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5;
-    setIsScrolledToBottom(isAtBottom);
-  };
-
-  const getLogClass = (logText: string, isError: boolean): string => {
-    if (isError) return 'text-red-400';
-    
-    const text = logText.toLowerCase();
-    if (text.includes('error') || text.includes('failed')) return 'text-red-400';
-    if (text.includes('warn')) return 'text-yellow-400';
-    if (text.includes('connected') || text.includes('started') || text.includes('ready')) return 'text-primary';
-    return 'text-white';
-  };
-
-  const formatTimestamp = (timestamp: string): string => {
-    return new Date(timestamp).toLocaleTimeString();
-  };
-
-  const handleRestartClick = () => {
-    if (confirm(`Restart ${displayName}?`)) {
-      onRestart(name);
-    }
-  };
-
-  const handleCommandSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (command.trim()) {
-      onCommand(command.trim(), name);
-      setCommand('');
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleCommandSubmit(e);
-    }
-  };
 
   const getStatusInfo = (stat?: ContainerStat) => {
     if (!stat) {
@@ -155,10 +76,10 @@ export default function ContainerWindow({
     <div className={`bg-background flex flex-col overflow-hidden ${className}`}>
       {/* Header */}
       <div className="bg-secondary px-3 py-2 border-b border-gray-700 flex justify-between items-center">
-        <div className={`font-bold text-sm ${containerColors[name]}`}>
+        <div className={`font-bold text-sm text-gray-400`}>
           {displayName}
         </div>
-        <div className="flex space-x-2">
+        {/* <div className="flex space-x-2">
           <button
             onClick={handleRestartClick}
             className="bg-red-600 hover:bg-red-500 text-white text-xs px-2 py-1 rounded"
@@ -171,32 +92,9 @@ export default function ContainerWindow({
           >
             Clear
           </button>
-        </div>
+        </div> */}
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-700">
-        <button
-          onClick={() => setActiveTab('logs')}
-          className={`px-4 py-2 text-sm font-medium ${
-            activeTab === 'logs'
-              ? 'bg-secondary text-white border-b-2 border-primary'
-              : 'bg-background text-gray-400 hover:text-white'
-          }`}
-        >
-          Logs
-        </button>
-        <button
-          onClick={() => setActiveTab('terminal')}
-          className={`px-4 py-2 text-sm font-medium ${
-            activeTab === 'terminal'
-              ? 'bg-secondary text-white border-b-2 border-primary'
-              : 'bg-background text-gray-400 hover:text-white'
-          }`}
-        >
-          Terminal
-        </button>
-      </div>
 
       {/* Status */}
       <div className="px-3 py-1 border-b border-gray-700 text-xs">
@@ -208,77 +106,11 @@ export default function ContainerWindow({
         </div>
       </div>
 
-      {/* Content Area */}
-      {activeTab === 'logs' ? (
-        <>
-          {/* Log Window */}
-          <div 
-            ref={logWindowRef}
-            onScroll={handleScroll}
-            className="flex-1 p-2 overflow-y-auto text-xs font-mono bg-black scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600"
-            style={{ minHeight: 0 }}
-          >
-            {allEntries.length === 0 ? (
-              <div className="text-gray-500 italic">No logs available</div>
-            ) : (
-              allEntries.map((entry, index) => (
-                <div key={index} className={`mb-1 break-words ${entry.isCommand ? 'bg-secondary px-1 py-0.5 rounded' : ''}`}>
-                  <span className="text-gray-500 mr-2">
-                    {formatTimestamp(entry.timestamp)}
-                  </span>
-                  <span className={`${entry.isCommand ? 'text-primary-light' : getLogClass(entry.data, entry.isError)}`}>
-                    {entry.data.trim()}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
+      {/* Terminal Content */}
+      <div className="flex-1 overflow-hidden">
+        <Terminal containerName={name} />
+      </div>
 
-          {/* Command Input */}
-          <form onSubmit={handleCommandSubmit} className="border-t border-gray-700 bg-secondary">
-            <div className="flex items-center px-2 py-2 space-x-2">
-              <span className="text-primary font-bold text-xs min-w-fit">$</span>
-              <input
-                type="text"
-                value={command}
-                onChange={(e) => setCommand(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={`Command for ${displayName}...`}
-                className="flex-1 bg-transparent text-white text-xs font-mono border-none outline-none placeholder-gray-500"
-              />
-              <button
-                type="submit"
-                disabled={!command.trim()}
-                className="bg-primary hover:bg-primary-dark disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-xs px-2 py-1 rounded"
-              >
-                Send
-              </button>
-            </div>
-          </form>
-        </>
-      ) : (
-        /* Terminal Tab */
-        <div className="flex-1 overflow-hidden">
-          <Terminal containerName={name} />
-        </div>
-      )}
-
-      {/* Scroll indicator */}
-      {activeTab === 'logs' && !isScrolledToBottom && (
-        <div className="absolute bottom-12 right-2">
-          <button
-            onClick={() => {
-              if (logWindowRef.current) {
-                logWindowRef.current.scrollTop = logWindowRef.current.scrollHeight;
-                setIsScrolledToBottom(true);
-              }
-            }}
-            className="bg-primary hover:bg-primary-dark text-white text-xs px-2 py-1 rounded shadow-lg"
-          >
-            ↓ New logs
-          </button>
-        </div>
-      )}
     </div>
   );
 }

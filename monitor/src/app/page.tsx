@@ -7,10 +7,7 @@ import { useRouter } from 'next/navigation';
 import ContainerWindow from '@/components/ContainerWindow';
 import {
 	ContainerName,
-	LogData,
 	ContainerStat,
-	CommandResult,
-	ExecuteCommand,
 	ConnectionStatus,
 	RestartResponse,
 	ErrorData
@@ -65,19 +62,7 @@ export default function Monitor() {
 	const router = useRouter();
 	const [socket, setSocket] = useState<Socket | null>(null);
 	const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({ connected: false });
-	const [logs, setLogs] = useState<Record<ContainerName, LogData[]>>({
-		'agent-1': [],
-		'agent-2': [],
-		'agent-3': [],
-		'nats': []
-	});
 	const [stats, setStats] = useState<ContainerStat[]>([]);
-	const [commandResults, setCommandResults] = useState<Record<ContainerName, CommandResult[]>>({
-		'agent-1': [],
-		'agent-2': [],
-		'agent-3': [],
-		'nats': []
-	});
 	// const { user, isLoading } = useUser();
 
 	useEffect(() => {
@@ -102,28 +87,8 @@ export default function Monitor() {
 			setConnectionStatus({ connected: false });
 		});
 
-		newSocket.on('log', (logData: LogData) => {
-			const containerName = logData.container as ContainerName;
-			if (containerName in logs) {
-				setLogs(prev => ({
-					...prev,
-					[containerName]: [...prev[containerName].slice(-999), logData]
-				}));
-			}
-		});
-
 		newSocket.on('stats', (statsData: ContainerStat[]) => {
 			setStats(statsData);
-		});
-
-		newSocket.on('command-result', (result: CommandResult) => {
-			const containerName = result.target as ContainerName;
-			if (containerName in commandResults) {
-				setCommandResults(prev => ({
-					...prev,
-					[containerName]: [...prev[containerName].slice(-49), result]
-				}));
-			}
 		});
 
 		newSocket.on('container-restarted', (data: RestartResponse) => {
@@ -163,29 +128,6 @@ export default function Monitor() {
 
 	// }, [user]); 
 
-	const handleCommand = (command: string, containerName: ContainerName) => {
-		if (!socket) return;
-
-		const executeCommand: ExecuteCommand = {
-			command,
-			target: containerName,
-			timestamp: new Date().toISOString()
-		};
-
-		socket.emit('execute-command', executeCommand);
-	};
-
-	const handleRestart = (containerName: ContainerName) => {
-		if (!socket) return;
-		socket.emit('restart-container', containerName);
-	};
-
-	const handleClearLogs = (containerName: ContainerName) => {
-		setLogs(prev => ({
-			...prev,
-			[containerName]: []
-		}));
-	};
 
 	const statsByName = useMemo(() => {
 		const map: Record<string, ContainerStat> = {};
@@ -244,7 +186,12 @@ export default function Monitor() {
 
 					{/* Header */}
 					<header className="bg-secondary px-5 py-3 border-b border-gray-700 flex justify-between items-center">
-						<h1 className="text-lg font-bold text-primary">Volta Shell Monitor</h1>
+						<div className="flex items-center space-x-4">
+							<h1 className="text-lg font-bold text-primary font-sans">Volta Shell Monitor</h1>
+							<span className="text-xs text-gray-400 font-mono" style={{fontFamily: 'var(--font-inter), system-ui, sans-serif'}}>
+								Inter Font Test
+							</span>
+						</div>
 						<div className="flex items-center space-x-6 text-xs">
 							<div className="flex space-x-6">
 								<div className="text-center">
@@ -275,45 +222,25 @@ export default function Monitor() {
 						<ContainerWindow
 							name="agent-1"
 							displayName="Richard"
-							logs={logs['agent-1']}
-							commandResults={commandResults['agent-1']}
 							stats={getStatForContainer('agent-1')}
-							onRestart={handleRestart}
-							onClearLogs={handleClearLogs}
-							onCommand={handleCommand}
 							className="relative"
 						/>
 						<ContainerWindow
 							name="agent-2"
 							displayName="Dinesh"
-							logs={logs['agent-2']}
-							commandResults={commandResults['agent-2']}
 							stats={getStatForContainer('agent-2')}
-							onRestart={handleRestart}
-							onClearLogs={handleClearLogs}
-							onCommand={handleCommand}
 							className="relative"
 						/>
 						<ContainerWindow
 							name="agent-3"
 							displayName="Gilfoyle"
-							logs={logs['agent-3']}
-							commandResults={commandResults['agent-3']}
 							stats={getStatForContainer('agent-3')}
-							onRestart={handleRestart}
-							onClearLogs={handleClearLogs}
-							onCommand={handleCommand}
 							className="relative"
 						/>
 						<ContainerWindow
 							name="nats"
 							displayName="NATS Server"
-							logs={logs.nats}
-							commandResults={commandResults.nats}
 							stats={getStatForContainer('nats')}
-							onRestart={handleRestart}
-							onClearLogs={handleClearLogs}
-							onCommand={handleCommand}
 							className="relative"
 						/>
 					</div>

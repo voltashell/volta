@@ -7,6 +7,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-inter)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
@@ -17,6 +20,24 @@ module.exports = {
         },
         secondary: "var(--secondary)",
         accent: "var(--accent)",
+        terminal: {
+          black: "var(--terminal-black)",
+          red: "var(--terminal-red)",
+          green: "var(--terminal-green)",
+          yellow: "var(--terminal-yellow)",
+          blue: "var(--terminal-blue)",
+          magenta: "var(--terminal-magenta)",
+          cyan: "var(--terminal-cyan)",
+          white: "var(--terminal-white)",
+          brightBlack: "var(--terminal-bright-black)",
+          brightRed: "var(--terminal-bright-red)",
+          brightGreen: "var(--terminal-bright-green)",
+          brightYellow: "var(--terminal-bright-yellow)",
+          brightBlue: "var(--terminal-bright-blue)",
+          brightMagenta: "var(--terminal-bright-magenta)",
+          brightCyan: "var(--terminal-bright-cyan)",
+          brightWhite: "var(--terminal-bright-white)",
+        },
       },
     },
   },

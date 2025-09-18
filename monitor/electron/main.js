@@ -97,6 +97,7 @@ function createMainWindow() {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    title: 'Volta',
     backgroundColor: '#111827',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -124,7 +125,10 @@ async function setupApplication() {
   }
 }
 
-app.whenReady().then(setupApplication);
+app.whenReady().then(() => {
+  app.setName('Volta');
+  setupApplication();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

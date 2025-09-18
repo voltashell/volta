@@ -17,6 +17,8 @@ export default function WebTerminal({ containerName }: TerminalProps) {
   const socketRef = useRef<Socket | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const isExitedRef = useRef<boolean>(false)
+  const hasInitializedRef = useRef<boolean>(false)
+  const inputDisabledRef = useRef<boolean>(true)
 
   useEffect(() => {
     if (!terminalRef.current) return
@@ -32,25 +34,25 @@ export default function WebTerminal({ containerName }: TerminalProps) {
       macOptionIsMeta: true,  // Better Mac keyboard support
       disableStdin: false,  // Allow input
       theme: {
-        background: '#141414',
-        foreground: '#ffffff',
-        cursor: '#4EBC88',
-        black: '#000000',
-        red: '#ff5555',
-        green: '#4EBC88',
-        yellow: '#f1fa8c',
-        blue: '#6272a4',
-        magenta: '#ff79c6',
-        cyan: '#6bc99a',
-        white: '#bfbfbf',
-        brightBlack: '#4d4d4d',
-        brightRed: '#ff6e67',
-        brightGreen: '#6bc99a',
-        brightYellow: '#f4f99d',
-        brightBlue: '#caa9fa',
-        brightMagenta: '#ff92d0',
-        brightCyan: '#4EBC88',
-        brightWhite: '#e6e6e6',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        cursor: 'var(--primary)',
+        black: 'var(--terminal-black)',
+        red: 'var(--terminal-red)',
+        green: 'var(--terminal-green)',
+        yellow: 'var(--terminal-yellow)',
+        blue: 'var(--terminal-blue)',
+        magenta: 'var(--terminal-magenta)',
+        cyan: 'var(--terminal-cyan)',
+        white: 'var(--terminal-white)',
+        brightBlack: 'var(--terminal-bright-black)',
+        brightRed: 'var(--terminal-bright-red)',
+        brightGreen: 'var(--terminal-bright-green)',
+        brightYellow: 'var(--terminal-bright-yellow)',
+        brightBlue: 'var(--terminal-bright-blue)',
+        brightMagenta: 'var(--terminal-bright-magenta)',
+        brightCyan: 'var(--terminal-bright-cyan)',
+        brightWhite: 'var(--terminal-bright-white)',
       }
     })
 
@@ -149,14 +151,34 @@ export default function WebTerminal({ containerName }: TerminalProps) {
     socket.on('terminal-created', (data: { container: string; message: string }) => {
       if (data.container === containerName) {
         console.log(`Terminal created for ${containerName}: ${data.message}`)
+        
+        // Auto-send Enter key for agent containers to bypass Gemini startup screen
+        if (containerName.startsWith('agent-') && !hasInitializedRef.current) {
+          setTimeout(() => {
+            socket.emit('terminal-input', { container: containerName, input: '\r' })
+            hasInitializedRef.current = true
+            inputDisabledRef.current = false
+            console.log(`Auto-sent Enter key to ${containerName} to bypass startup screen`)
+          }, 2000) // Wait 2 seconds for startup screen to fully load
+        } else if (!containerName.startsWith('agent-')) {
+          // For non-agent containers (like NATS), enable input immediately
+          inputDisabledRef.current = false
+        }
       }
     })
 
     // Send input to server
     term.onData((data) => {
+      // Block input if disabled (waiting for initial Enter)
+      if (inputDisabledRef.current && !isExitedRef.current) {
+        return
+      }
+      
       // Check if terminal has exited and user pressed Enter to restart
       if (isExitedRef.current && data === '\r') {
         isExitedRef.current = false
+        hasInitializedRef.current = false
+        inputDisabledRef.current = true
         term.clear()
         socket.emit('create-terminal', containerName)
         // Auto-scroll to bottom after clearing
