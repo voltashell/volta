@@ -1,5 +1,5 @@
 /**
- * Utility functions for the AI Flock agent system
+ * Utility functions for the Volta Shell agent system
  */
 
 import { promises as fs } from 'fs';

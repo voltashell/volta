@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Clear shared folder script for AI Flock
+# Clear shared folder script for Volta Shell
 # This script removes temporary files and logs while preserving essential structure
 
 set -e

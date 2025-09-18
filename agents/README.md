@@ -1,4 +1,4 @@
-# AI Flock Agents
+# Volta Shell Agents
 
 TypeScript-based containerized AI agents with Gemini CLI integration, interactive shell support, and NATS messaging for distributed task processing.
 
@@ -74,7 +74,7 @@ docker run -d \
   -e NATS_URL=nats://nats:4222 \
   -e GEMINI_API_KEY=$GEMINI_API_KEY \
   -v $(pwd)/../shared:/shared \
-  --network ai-flock_bus \
+  --network volta-shell_bus \
   ai-agent
 ```
 
@@ -380,4 +380,4 @@ npm run test:gemini
 docker stats agent-1 agent-2 agent-3
 ```
 
-The AI Flock agents provide a robust foundation for distributed AI processing with full interactive capabilities, making development and debugging straightforward through web-based terminals and comprehensive logging.
+The Volta Shell agents provide a robust foundation for distributed AI processing with full interactive capabilities, making development and debugging straightforward through web-based terminals and comprehensive logging.

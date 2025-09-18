@@ -231,11 +231,11 @@ export default function Monitor() {
 			{/* {user && ( */}
 			{true && (
 
-				<div className="h-screen flex flex-col bg-gray-900 text-white overflow-hidden">
+				<div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
 					{/* Connection Status */}
 					<div className="fixed top-3 right-4 z-50">
 						<div className={`px-2 py-1 rounded text-xs font-bold ${connectionStatus.connected
-								? 'bg-green-600 text-white'
+								? 'bg-primary text-white'
 								: 'bg-red-600 text-white'
 							}`}>
 							{connectionStatus.connected ? 'Connected' : 'Disconnected'}
@@ -243,21 +243,21 @@ export default function Monitor() {
 					</div>
 
 					{/* Header */}
-					<header className="bg-gray-800 px-5 py-3 border-b border-gray-600 flex justify-between items-center">
-						<h1 className="text-lg font-bold text-green-400">AI Flock Monitor</h1>
+					<header className="bg-secondary px-5 py-3 border-b border-gray-700 flex justify-between items-center">
+						<h1 className="text-lg font-bold text-primary">Volta Shell Monitor</h1>
 						<div className="flex items-center space-x-6 text-xs">
 							<div className="flex space-x-6">
 								<div className="text-center">
 									<div className="text-gray-400">Containers</div>
-									<div className="text-green-400 font-bold">{`${totalStats.running}/${totalStats.total}`}</div>
+									<div className="text-primary font-bold">{`${totalStats.running}/${totalStats.total}`}</div>
 								</div>
 								<div className="text-center">
 									<div className="text-gray-400">CPU</div>
-									<div className="text-green-400 font-bold">{`${totalStats.cpu.toFixed(1)}%`}</div>
+									<div className="text-primary font-bold">{`${totalStats.cpu.toFixed(1)}%`}</div>
 								</div>
 								<div className="text-center">
 									<div className="text-gray-400">Memory</div>
-									<div className="text-green-400 font-bold">{formatMemoryFromMB(totalStats.memoryMb)}</div>
+									<div className="text-primary font-bold">{formatMemoryFromMB(totalStats.memoryMb)}</div>
 								</div>
 							</div>
 							{/* <span className="text-green-400">{user?.name}</span>
@@ -271,7 +271,7 @@ export default function Monitor() {
 					</header>
 
 					{/* Main Content - Container Grid */}
-					<div className="grid grid-cols-2 grid-rows-2 gap-px bg-gray-600 flex-1 overflow-hidden">
+					<div className="grid grid-cols-2 grid-rows-2 gap-px bg-gray-700 flex-1 overflow-hidden">
 						<ContainerWindow
 							name="agent-1"
 							displayName="Richard"

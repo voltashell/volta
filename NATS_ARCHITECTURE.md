@@ -1,10 +1,10 @@
-# NATS Architecture in AI Flock
+# NATS Architecture in Volta Shell
 
 ## What is NATS?
 
-**NATS** (Neural Autonomic Transport System) is a lightweight, high-performance messaging system that serves as the **communication backbone** for the AI Flock project. It's a publish-subscribe message broker that enables real-time communication between distributed AI agents.
+**NATS** (Neural Autonomic Transport System) is a lightweight, high-performance messaging system that serves as the **communication backbone** for the Volta Shell project. It's a publish-subscribe message broker that enables real-time communication between distributed AI agents.
 
-## NATS's Role in AI Flock
+## NATS's Role in Volta Shell
 
 ### 1. Message Bus Architecture
 
@@ -125,7 +125,7 @@ interface MCPMessage {
 
 ## Real-World Benefits
 
-In the AI Flock system, NATS enables:
+In the Volta Shell system, NATS enables:
 
 1. **Collaborative AI**: Multiple Claude agents can work together on complex tasks
 2. **Load Distribution**: Spread work across available agents

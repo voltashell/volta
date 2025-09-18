@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI Flock is a distributed system of AI agents running in isolated Docker containers, communicating via NATS messaging. The system features:
+Volta Shell is a distributed system of AI agents running in isolated Docker containers, communicating via NATS messaging. The system features:
 - Multiple AI agents with Claude integration running in Docker containers
 - NATS message bus for inter-agent communication
 - Web-based monitoring interface with terminal access
@@ -16,22 +16,22 @@ AI Flock is a distributed system of AI agents running in isolated Docker contain
 ### System Management
 ```bash
 # Start entire system (agents + NATS + monitor)
-npm run flock:up
+npm run volta:up
 
 # Stop all services
-npm run flock:down
+npm run volta:down
 
 # Restart system with clean state
-npm run flock:restart
+npm run volta:restart
 
 # View logs for all containers
-npm run flock:logs
+npm run volta:logs
 
 # Check container status
-npm run flock:status
+npm run volta:status
 
 # Clean shared storage
-npm run flock:clear-shared
+npm run volta:clear-shared
 ```
 
 ### Building Components
@@ -52,7 +52,7 @@ cd agents && npm run type-check
 ### Development Mode
 ```bash
 # Run monitor in dev mode with hot reload
-npm run flock:monitor:dev
+npm run volta:monitor:dev
 
 # Run agents in dev mode
 cd agents && npm run dev
@@ -69,9 +69,9 @@ docker exec -it agent-2 /bin/bash
 docker exec -it agent-3 /bin/bash
 
 # View individual agent logs
-npm run flock:logs:agent1
-npm run flock:logs:agent2
-npm run flock:logs:agent3
+npm run volta:logs:agent1
+npm run volta:logs:agent2
+npm run volta:logs:agent3
 
 # Test NATS messaging
 node scripts/send-message.js
@@ -82,7 +82,7 @@ docker exec agent-1 gemini models list
 docker exec agent-1 gc  # Interactive chat
 
 # Access all agent terminals at once
-npm run flock:bash:all
+npm run volta:bash:all
 ```
 
 ## Architecture & Key Components

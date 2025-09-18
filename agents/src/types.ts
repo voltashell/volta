@@ -1,5 +1,5 @@
 /**
- * Type definitions for the AI Flock agent system
+ * Type definitions for the Volta Shell agent system
  */
 
 export interface Task {

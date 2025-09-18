@@ -30,25 +30,26 @@ export default function WebTerminal({ containerName }: TerminalProps) {
       scrollback: 10000,  // Keep more history
       allowProposedApi: true,  // Enable proposed APIs for better compatibility
       macOptionIsMeta: true,  // Better Mac keyboard support
+      disableStdin: false,  // Allow input
       theme: {
-        background: '#1a1a1a',
+        background: '#141414',
         foreground: '#ffffff',
-        cursor: '#ffffff',
+        cursor: '#4EBC88',
         black: '#000000',
         red: '#ff5555',
-        green: '#50fa7b',
+        green: '#4EBC88',
         yellow: '#f1fa8c',
         blue: '#6272a4',
         magenta: '#ff79c6',
-        cyan: '#8be9fd',
+        cyan: '#6bc99a',
         white: '#bfbfbf',
         brightBlack: '#4d4d4d',
         brightRed: '#ff6e67',
-        brightGreen: '#5af78e',
+        brightGreen: '#6bc99a',
         brightYellow: '#f4f99d',
         brightBlue: '#caa9fa',
         brightMagenta: '#ff92d0',
-        brightCyan: '#9aedfe',
+        brightCyan: '#4EBC88',
         brightWhite: '#e6e6e6',
       }
     })
@@ -61,6 +62,24 @@ export default function WebTerminal({ containerName }: TerminalProps) {
 
     // Open terminal in DOM
     term.open(terminalRef.current)
+    
+    // Hide scrollbar but keep scroll functionality
+    if (terminalRef.current) {
+      const terminalElement = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement
+      if (terminalElement) {
+        // Hide scrollbar using CSS
+        terminalElement.style.scrollbarWidth = 'none' // Firefox
+        ;(terminalElement.style as any).msOverflowStyle = 'none' // IE/Edge
+        // For Webkit browsers (Chrome, Safari)
+        const style = document.createElement('style')
+        style.textContent = `
+          .xterm-viewport::-webkit-scrollbar {
+            display: none;
+          }
+        `
+        document.head.appendChild(style)
+      }
+    }
     
     // Store refs first
     xtermRef.current = term
@@ -91,10 +110,14 @@ export default function WebTerminal({ containerName }: TerminalProps) {
       socket.emit('create-terminal', containerName)
     }, 100)
 
-    // Handle terminal output
+    // Handle terminal output with auto-scroll to bottom
     socket.on('terminal-output', (data: { container: string; data: string }) => {
       if (data.container === containerName) {
         term.write(data.data)
+        // Auto-scroll to bottom after writing new data
+        setTimeout(() => {
+          term.scrollToBottom()
+        }, 0)
       }
     })
 
@@ -104,6 +127,10 @@ export default function WebTerminal({ containerName }: TerminalProps) {
         isExitedRef.current = true
         term.write(`\r\n[Terminal session closed]\r\n`)
         term.write('\r\n[Press Enter to restart the terminal]\r\n')
+        // Auto-scroll to bottom after writing status messages
+        setTimeout(() => {
+          term.scrollToBottom()
+        }, 0)
       }
     })
 
@@ -111,6 +138,10 @@ export default function WebTerminal({ containerName }: TerminalProps) {
     socket.on('error', (data: { container: string; message: string }) => {
       if (data.container === containerName) {
         term.write(`\r\n[Error: ${data.message}]\r\n`)
+        // Auto-scroll to bottom after writing error messages
+        setTimeout(() => {
+          term.scrollToBottom()
+        }, 0)
       }
     })
     
@@ -128,6 +159,10 @@ export default function WebTerminal({ containerName }: TerminalProps) {
         isExitedRef.current = false
         term.clear()
         socket.emit('create-terminal', containerName)
+        // Auto-scroll to bottom after clearing
+        setTimeout(() => {
+          term.scrollToBottom()
+        }, 0)
       } else if (!isExitedRef.current) {
         socket.emit('terminal-input', { container: containerName, input: data })
       }
@@ -171,7 +206,7 @@ export default function WebTerminal({ containerName }: TerminalProps) {
   }, [containerName])
 
   return (
-    <div className="h-full w-full bg-gray-900 p-2">
+    <div className="h-full w-full bg-background p-2">
       <div ref={terminalRef} className="h-full w-full" />
     </div>
   )

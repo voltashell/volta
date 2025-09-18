@@ -23,7 +23,7 @@ interface ContainerWindowProps {
 
 const containerColors: Record<ContainerName, string> = {
   'agent-1': 'text-red-400',
-  'agent-2': 'text-teal-400', 
+  'agent-2': 'text-primary-light', 
   'agent-3': 'text-blue-400',
   'nats': 'text-yellow-400',
 };
@@ -75,7 +75,7 @@ export default function ContainerWindow({
     const text = logText.toLowerCase();
     if (text.includes('error') || text.includes('failed')) return 'text-red-400';
     if (text.includes('warn')) return 'text-yellow-400';
-    if (text.includes('connected') || text.includes('started') || text.includes('ready')) return 'text-green-400';
+    if (text.includes('connected') || text.includes('started') || text.includes('ready')) return 'text-primary';
     return 'text-white';
   };
 
@@ -118,7 +118,7 @@ export default function ContainerWindow({
 
     switch (state) {
       case 'running':
-        return { label: 'Running', detail, color: 'text-green-400' };
+        return { label: 'Running', detail, color: 'text-primary' };
       case 'restarting':
         return { label: 'Restarting', detail, color: 'text-yellow-400' };
       case 'paused':
@@ -152,9 +152,9 @@ export default function ContainerWindow({
   const memoryDisplay = formatMemory(stats);
 
   return (
-    <div className={`bg-gray-900 flex flex-col overflow-hidden ${className}`}>
+    <div className={`bg-background flex flex-col overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="bg-gray-800 px-3 py-2 border-b border-gray-600 flex justify-between items-center">
+      <div className="bg-secondary px-3 py-2 border-b border-gray-700 flex justify-between items-center">
         <div className={`font-bold text-sm ${containerColors[name]}`}>
           {displayName}
         </div>
@@ -175,13 +175,13 @@ export default function ContainerWindow({
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-600">
+      <div className="flex border-b border-gray-700">
         <button
           onClick={() => setActiveTab('logs')}
           className={`px-4 py-2 text-sm font-medium ${
             activeTab === 'logs'
-              ? 'bg-gray-800 text-white border-b-2 border-blue-500'
-              : 'bg-gray-900 text-gray-400 hover:text-white'
+              ? 'bg-secondary text-white border-b-2 border-primary'
+              : 'bg-background text-gray-400 hover:text-white'
           }`}
         >
           Logs
@@ -190,8 +190,8 @@ export default function ContainerWindow({
           onClick={() => setActiveTab('terminal')}
           className={`px-4 py-2 text-sm font-medium ${
             activeTab === 'terminal'
-              ? 'bg-gray-800 text-white border-b-2 border-blue-500'
-              : 'bg-gray-900 text-gray-400 hover:text-white'
+              ? 'bg-secondary text-white border-b-2 border-primary'
+              : 'bg-background text-gray-400 hover:text-white'
           }`}
         >
           Terminal
@@ -199,7 +199,7 @@ export default function ContainerWindow({
       </div>
 
       {/* Status */}
-      <div className="px-3 py-1 border-b border-gray-600 text-xs">
+      <div className="px-3 py-1 border-b border-gray-700 text-xs">
         <div className="text-gray-400">
           Status: <span className={statusInfo.color}>{statusInfo.label}</span>
           {statusInfo.detail ? ` (${statusInfo.detail})` : ''}
@@ -215,18 +215,18 @@ export default function ContainerWindow({
           <div 
             ref={logWindowRef}
             onScroll={handleScroll}
-            className="flex-1 p-2 overflow-y-auto text-xs font-mono bg-gray-950 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600"
+            className="flex-1 p-2 overflow-y-auto text-xs font-mono bg-black scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600"
             style={{ minHeight: 0 }}
           >
             {allEntries.length === 0 ? (
               <div className="text-gray-500 italic">No logs available</div>
             ) : (
               allEntries.map((entry, index) => (
-                <div key={index} className={`mb-1 break-words ${entry.isCommand ? 'bg-gray-900 px-1 py-0.5 rounded' : ''}`}>
+                <div key={index} className={`mb-1 break-words ${entry.isCommand ? 'bg-secondary px-1 py-0.5 rounded' : ''}`}>
                   <span className="text-gray-500 mr-2">
                     {formatTimestamp(entry.timestamp)}
                   </span>
-                  <span className={`${entry.isCommand ? 'text-cyan-400' : getLogClass(entry.data, entry.isError)}`}>
+                  <span className={`${entry.isCommand ? 'text-primary-light' : getLogClass(entry.data, entry.isError)}`}>
                     {entry.data.trim()}
                   </span>
                 </div>
@@ -235,9 +235,9 @@ export default function ContainerWindow({
           </div>
 
           {/* Command Input */}
-          <form onSubmit={handleCommandSubmit} className="border-t border-gray-600 bg-gray-800">
+          <form onSubmit={handleCommandSubmit} className="border-t border-gray-700 bg-secondary">
             <div className="flex items-center px-2 py-2 space-x-2">
-              <span className="text-green-400 font-bold text-xs min-w-fit">$</span>
+              <span className="text-primary font-bold text-xs min-w-fit">$</span>
               <input
                 type="text"
                 value={command}
@@ -249,7 +249,7 @@ export default function ContainerWindow({
               <button
                 type="submit"
                 disabled={!command.trim()}
-                className="bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-xs px-2 py-1 rounded"
+                className="bg-primary hover:bg-primary-dark disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-xs px-2 py-1 rounded"
               >
                 Send
               </button>
@@ -273,7 +273,7 @@ export default function ContainerWindow({
                 setIsScrolledToBottom(true);
               }
             }}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-2 py-1 rounded shadow-lg"
+            className="bg-primary hover:bg-primary-dark text-white text-xs px-2 py-1 rounded shadow-lg"
           >
             ↓ New logs
           </button>

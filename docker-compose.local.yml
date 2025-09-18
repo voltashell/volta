@@ -134,7 +134,7 @@ services:
     build:
       context: ./monitor
       dockerfile: Dockerfile
-    image: ai-flock-monitor:latest
+    image: volta-shell-monitor:latest
     container_name: monitor
     restart: unless-stopped
     depends_on:
