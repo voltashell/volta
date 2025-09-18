@@ -9,37 +9,32 @@ set -e
 # Create necessary directories
 mkdir -p /tmp
 mkdir -p /run
-mkdir -p /home/agent/workspace
-mkdir -p /home/workspace/repo
 mkdir -p /shared/agents
+mkdir -p /shared/workspace
 
-# Set ownership of directories
-chown -R agent:agent /app
-chown -R agent:agent /tmp
-chown -R agent:agent /run
+# Set ownership of directories - SECURITY: Agent should NOT own system directories
+# /app contains application code and should remain root-owned
+# /tmp and /run are system directories that should remain root-owned
+# Agent gets read-write access to /home and /shared
 chown -R agent:agent /entrypoint.sh
-chown -R root:agent /home/agent
-chown -R agent:agent /home/workspace
-chown -R root:agent /shared
+chown -R agent:agent /home
+chown -R agent:agent /shared
 
 # Set specific file permissions
 chmod +x /etc/profile.d/agent-env.sh
-chmod 644 /home/CLAUDE.md
+chmod 644 /home/GEMINI.md
 chmod +x /entrypoint.sh
 
-# Set directory permissions - agent can only READ home and shared folders
-chmod 755 /home/agent          # agent can read/execute but not write
-chmod 755 /home/agent/workspace
-chmod 755 /home/workspace/repo
-chmod 755 /shared              # agent can read/execute but not write
-chmod 755 /shared/agents
+# SECURITY: Restrict agent access to system directories
+# /app should not be readable or writable by agent
+chmod 700 /app
+# /tmp and /run should have restricted access - agent cannot read/write
+chmod 700 /tmp
+chmod 700 /run
 
-# Set workspace as writable (only place agent can write)
-chmod 775 /home/agent/workspace
-chmod 775 /home/workspace/repo
-
-# Remove write permissions from home and shared for agent user
-chmod 755 /home/agent          # read/execute only for agent
-chmod 755 /shared              # read/execute only for agent
+# Set directory permissions - agent has read-write access to /home and /shared
+chmod 775 /home                # agent can read/write/execute
+chmod 775 /shared              # agent can read/write/execute
+chmod 775 /shared/agents
 
 echo "Agent filesystem permissions configured successfully"

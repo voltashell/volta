@@ -165,8 +165,8 @@ The system uses Docker containers for isolation with the following structure:
 
 ### File System Access (Agents)
 - `/shared/agents/{AGENT_ID}/`: Agent-specific persistent storage
-- `/home/agent/workspace/`: Private workspace for temporary files
-- `/workspace/repo/`: External repository mount (when configured)
+- `/home/`: Private home directory for files and work
+- `/shared/workspace/`: Collaborative repository mount for multi-agent editing (when configured)
 - `/shared/common/`: Shared read/write area for collaboration
 
 ### TypeScript Configuration

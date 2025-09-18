@@ -10,8 +10,8 @@ export TERM=xterm-256color
 export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
 # If a custom repository is mounted, expose a consistent path for convenience
-if [ -n "$CUSTOM_REPO_PATH" ] && [ -d "/home/workspace/repo" ]; then
-  export REPO_PATH="/home/workspace/repo"
+if [ -n "$CUSTOM_REPO_PATH" ] && [ -d "/shared/workspace" ]; then
+  export REPO_PATH="/shared/workspace"
 fi
 
 # Helpful aliases for interactive shells

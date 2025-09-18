@@ -51,10 +51,6 @@ mkdir -p "$SHARED_DIR/agents"
 mkdir -p "$SHARED_DIR/common"
 mkdir -p "$SHARED_DIR/logs"
 
-# Create .gitkeep files if they don't exist
-touch "$SHARED_DIR/common/.gitkeep"
-touch "$SHARED_DIR/logs/.gitkeep"
-
 echo "✅ Shared folder cleared successfully!"
 echo "📁 Preserved structure:"
 echo "   - agents/ (agent-specific directories)"

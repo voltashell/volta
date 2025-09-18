@@ -23,7 +23,7 @@ FROM node:20-alpine
 RUN apk add --no-cache bash curl git npm screen util-linux vim wget unzip
 
 # Install Claude Code CLI via npm
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @google/gemini-cli
 
 # Build arguments for user/group IDs
 ARG AGENT_UID=1001
@@ -51,11 +51,11 @@ COPY scripts/setup-permissions.sh /usr/local/bin/setup-permissions.sh
 RUN chmod +x /etc/profile.d/agent-env.sh
 RUN chmod +x /usr/local/bin/setup-permissions.sh
 
-# Copy CLAUDE.md to /home/.claude directory
-COPY CLAUDE.md /home/CLAUDE.md
+# Copy GEMINI.md to /home directory
+COPY GEMINI.md /home/GEMINI.md
 
 # Copy set-auth directory for authentication template
-COPY set-auth/ /app/set-auth/
+# COPY set-auth/ /app/set-auth/
 
 # Create bashrc for interactive sessions
 RUN echo '#!/bin/bash' > /home/agent/.bashrc && \
@@ -64,38 +64,51 @@ RUN echo '#!/bin/bash' > /home/agent/.bashrc && \
     echo '' >> /home/agent/.bashrc && \
     echo '# Welcome message' >> /home/agent/.bashrc && \
     echo 'echo "Welcome to ${AGENT_ID} shell!"' >> /home/agent/.bashrc && \
-    echo 'echo " Workspace: /home/agent/workspace (writable)"' >> /home/agent/.bashrc && \
+    echo 'echo "🏠 Home: /home (writable)"' >> /home/agent/.bashrc && \
     echo 'echo "📁 Shared: /shared/agents/${AGENT_ID} (persistent)"' >> /home/agent/.bashrc && \
-    echo 'if [ -n "$CUSTOM_REPO_PATH" ] && [ -d "/home/workspace/repo" ]; then' >> /home/agent/.bashrc && \
-    echo '  echo "📂 Custom Repository: /home/workspace/repo (mounted from host)"' >> /home/agent/.bashrc && \
+    echo 'if [ -n "$CUSTOM_REPO_PATH" ] && [ -d "/shared/workspace" ]; then' >> /home/agent/.bashrc && \
+    echo '  echo "📂 Custom Repository: /shared/workspace (mounted from host)"' >> /home/agent/.bashrc && \
     echo 'fi' >> /home/agent/.bashrc && \
     echo '' >> /home/agent/.bashrc && \
-    echo '# Auto-start Claude Code on first interactive shell' >> /home/agent/.bashrc && \
-    echo 'if [ -z "$CLAUDE_STARTED" ] && [ -t 0 ] && [ -t 1 ]; then' >> /home/agent/.bashrc && \
-    echo '  export CLAUDE_STARTED=1' >> /home/agent/.bashrc && \
-    echo '  echo "🚀 Starting Claude Code AI Assistant..."' >> /home/agent/.bashrc && \
-    echo '  echo "Type exit to leave Claude and access the shell"' >> /home/agent/.bashrc && \
+    echo '# Auto-start Gemini on interactive shell' >> /home/agent/.bashrc && \
+    echo 'if [ -t 0 ] && [ -t 1 ] && [ -n "$GEMINI_API_KEY" ]; then' >> /home/agent/.bashrc && \
+    echo '  echo "🚀 Starting Gemini AI Assistant..."' >> /home/agent/.bashrc && \
+    echo '  echo "Type exit to leave Gemini and access the shell"' >> /home/agent/.bashrc && \
     echo '  cd /home' >> /home/agent/.bashrc && \
-    echo '  claude --output-format json' >> /home/agent/.bashrc && \
-    echo 'fi' >> /home/agent/.bashrc
+    echo '  gemini' >> /home/agent/.bashrc && \
+    echo 'fi' >> /home/agent/.bashrc && \
+    echo 'if [ -f ~/.bashrc ]; then' > /home/agent/.bash_profile && \
+    echo '  source ~/.bashrc' >> /home/agent/.bash_profile && \
+    echo 'fi' >> /home/agent/.bash_profile
 
 # Create entrypoint script that runs agent in background and keeps container alive
 RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'echo "🤖 Starting AI Agent with Shell Support..."' >> /entrypoint.sh && \
     echo 'echo "Agent ID: ${AGENT_ID}"' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
-    # echo '# Configure Claude Code CLI with persistent .claude/.env file in shared storage' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
-    echo '# Copy authentication template to home directory for all agents' >> /entrypoint.sh && \
-    echo 'echo "📋 Copying authentication template to home directory..."' >> /entrypoint.sh && \
-    echo 'cp -r /app/set-auth/. /home/agent/ 2>/dev/null || true' >> /entrypoint.sh && \
+    echo '# Setup agent environment' >> /entrypoint.sh && \
+    echo 'echo "🔧 Setting up agent environment..."' >> /entrypoint.sh && \
     echo 'chown -R agent:agent /home/agent 2>/dev/null || true' >> /entrypoint.sh && \
-    echo 'echo "✅ Authentication template copied to $HOME"' >> /entrypoint.sh && \
+    echo 'echo "✅ Agent environment ready"' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
     echo 'export HOME="/home/agent"' >> /entrypoint.sh && \
     echo 'cd /home' >> /entrypoint.sh && \
-    # echo 'node dist/index.js &' >> /entrypoint.sh && \
     echo 'AGENT_PID=$!' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Export environment variables if they exist' >> /entrypoint.sh && \
+    echo 'if [ -n "$GEMINI_API_KEY" ]; then' >> /entrypoint.sh && \
+    echo '  export GEMINI_API_KEY="$GEMINI_API_KEY"' >> /entrypoint.sh && \
+    echo 'fi' >> /entrypoint.sh && \
+    echo '' >> /entrypoint.sh && \
+    echo '# Configure and start Gemini CLI if API key is available' >> /entrypoint.sh && \
+    echo 'if [ -n "$GEMINI_API_KEY" ]; then' >> /entrypoint.sh && \
+    echo '  echo "🚀 Starting Gemini CLI..."' >> /entrypoint.sh && \
+    echo '  gemini config set-api-key "$GEMINI_API_KEY" 2>/dev/null || true' >> /entrypoint.sh && \
+    echo '  echo "✅ Gemini CLI configured"' >> /entrypoint.sh && \
+    echo 'else' >> /entrypoint.sh && \
+    echo '  echo "⚠️  GEMINI_API_KEY not set - Gemini CLI not configured"' >> /entrypoint.sh && \
+    echo 'fi' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
     echo 'exec tail -f /dev/null' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh

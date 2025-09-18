@@ -12,7 +12,7 @@ TypeScript-based containerized AI agents with Gemini CLI integration, interactiv
 
 ### 🖥️ Interactive Shell Environment  
 - **Full bash shell** with command history and completion
-- **Writable workspace** at `/home/agent/workspace`
+- **Writable home directory** at `/home`
 - **Screen session support** for background processes
 - **Development tools**: nano, vim, curl, git
 
@@ -195,7 +195,7 @@ The `.bashrc` provides:
 - **Environment variables** automatically loaded
 - **Custom aliases**: `gc`, `gp` for Gemini access
 - **Colored prompt** showing agent ID
-- **Working directory** defaults to `/home/agent/workspace`
+- **Working directory** defaults to `/home`
 
 ## Interactive Commands
 
@@ -220,8 +220,8 @@ screen -r gemini-session  # Reattach
 
 ### File System Operations
 ```bash
-# Agent workspace (writable)
-cd /home/agent/workspace
+# Agent home directory (writable)
+cd /home
 touch hello.txt
 echo "Hello World" > hello.txt
 cat hello.txt

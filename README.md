@@ -48,8 +48,8 @@ AI Flock provides strict isolation between AI agents using Docker containers wit
 - **NATS Messaging**: Agent coordination and task distribution
 - **WebSocket**: Real-time browser-to-agent terminal connections
 - **Shared Storage**: Per-agent directories (`/shared/agents/<id>/`)
-- **Agent Workspace**: Writable file system at `/home/agent/workspace`
-- **Custom Repository**: Optional mount at `/workspace/repo` for external codebases
+- **Agent Home**: Writable file system at `/home`
+- **Collaborative Repository**: Optional mount at `/shared/workspace` for multi-agent collaborative editing
 
 ## Quick Start
 
@@ -221,14 +221,14 @@ npm run type-check
 ### Interactive Capabilities
 Each agent provides:
 - **Full bash shell** with command history and completion
-- **File system access** - create and edit files in `/home/agent/workspace`
+- **File system access** - create and edit files in `/home`
 - **Gemini AI integration** - interactive chat and prompt processing  
 - **Screen sessions** for background processes
 - **Network access** to NATS broker for agent communication
 
 ### Environment Setup
 - **Home directory**: `/shared/agents/${AGENT_ID}/` (persistent)
-- **Workspace**: `/home/agent/workspace/` (writable) 
+- **Home Directory**: `/home/` (writable) 
 - **Gemini config**: Automatically configured with API key
 - **Shell aliases**: `gc` (Gemini chat), `gp` (quick prompt)
 

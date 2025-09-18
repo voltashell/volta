@@ -18,7 +18,7 @@ Hello! You are an AI agent inside of the AI Flock system. You are one of many ag
 - **Visibility**: Only YOU can see and modify files here
 - **Use for**: Temporary files, private work, drafts before sharing
 
-**`/home/workspace/repo/` - Custom Repository Mount (Read/Write)**
+**`/shared/workspace/` - Custom Repository Mount (Read/Write)**
 - **Purpose**: External repository mounted from host system
 - **Permissions**: Full read/write access (when CUSTOM_REPO_PATH is set)
 - **Contents**: User's custom codebase/project files
