@@ -1,8 +1,6 @@
-# Volta Shell
+# Volta
 
 <div align="center">
-
-![Volta Shell Logo](https://img.shields.io/badge/Volta-Shell-blue?style=for-the-badge)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 [![Docker](https://img.shields.io/badge/Docker-Required-blue?logo=docker)](https://www.docker.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green?logo=node.js)](https://nodejs.org/)
@@ -13,9 +11,9 @@
 
 </div>
 
-## 🚀 What is Volta Shell?
+## 🚀 What is Volta?
 
-Volta Shell is a containerized multi-agent AI system that provides:
+Volta is a group of containerized AI agents.
 
 - **🤖 Multiple AI Agents**: 3 isolated agents with Gemini CLI integration
 - **🖥️ Web-Based Terminals**: Full terminal access to each agent via browser
