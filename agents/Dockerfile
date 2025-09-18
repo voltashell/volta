@@ -47,16 +47,15 @@ COPY --from=builder /app/dist ./dist
 
 # Copy helper scripts
 COPY scripts/setup-env.sh /etc/profile.d/agent-env.sh
+COPY scripts/setup-permissions.sh /usr/local/bin/setup-permissions.sh
 RUN chmod +x /etc/profile.d/agent-env.sh
+RUN chmod +x /usr/local/bin/setup-permissions.sh
 
 # Copy CLAUDE.md to /home/.claude directory
 COPY CLAUDE.md /home/CLAUDE.md
-RUN chmod 644 /home/CLAUDE.md
 
 # Copy set-auth directory for authentication template
 COPY set-auth/ /app/set-auth/
-
-# Create .gemini template (will be copied to shared volume at runtime)
 
 # Create bashrc for interactive sessions
 RUN echo '#!/bin/bash' > /home/agent/.bashrc && \
@@ -76,7 +75,7 @@ RUN echo '#!/bin/bash' > /home/agent/.bashrc && \
     echo '  export CLAUDE_STARTED=1' >> /home/agent/.bashrc && \
     echo '  echo "🚀 Starting Claude Code AI Assistant..."' >> /home/agent/.bashrc && \
     echo '  echo "Type exit to leave Claude and access the shell"' >> /home/agent/.bashrc && \
-    echo '  cd ~' >> /home/agent/.bashrc && \
+    echo '  cd /home' >> /home/agent/.bashrc && \
     echo '  claude --output-format json' >> /home/agent/.bashrc && \
     echo 'fi' >> /home/agent/.bashrc
 
@@ -94,18 +93,21 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'echo "✅ Authentication template copied to $HOME"' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
     echo 'export HOME="/home/agent"' >> /entrypoint.sh && \
+    echo 'cd /home' >> /entrypoint.sh && \
     # echo 'node dist/index.js &' >> /entrypoint.sh && \
     echo 'AGENT_PID=$!' >> /entrypoint.sh && \
     echo '' >> /entrypoint.sh && \
     echo 'exec tail -f /dev/null' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
-# Create necessary directories with proper permissions
-RUN mkdir -p /tmp /run /home/agent/workspace /home/workspace/repo /shared/agents && \
-    chown -R agent:agent /app /tmp /run /entrypoint.sh /home/agent /home/workspace /shared
+# Set up filesystem permissions using dedicated script
+RUN /usr/local/bin/setup-permissions.sh
 
 # Switch to non-root user
 USER agent
+
+# Change working directory to /home after switching to agent user
+WORKDIR /home
 
 # Set bash as default shell
 SHELL ["/bin/bash", "-c"]

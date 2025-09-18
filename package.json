@@ -8,7 +8,7 @@
     "flock:down": "docker-compose -f docker-compose.local.yml down",
     "flock:clean": "rm -rf shared/agents/*/task-*.json shared/logs/*.log || true",
     "flock:clear-shared": "./scripts/clear-shared.sh",
-    "flock:restart": "npm run flock:down && npm run flock:clean && npm run flock:up",
+    "flock:restart": "npm run flock:down && npm run flock:clean && npm run flock:up && npm run electron:compose",
     "flock:logs": "docker-compose -f docker-compose.local.yml logs -f --tail=100 --timestamps",
     "flock:status": "docker-compose -f docker-compose.local.yml ps",
     "flock:stats": "docker stats agent-1 agent-2 agent-3 nats",
@@ -36,7 +36,8 @@
     "flock:monitor:build": "cd monitor && npm run build",
     "flock:monitor:server": "cd monitor-server && npm install && npm run dev",
     "flock:monitor:full": "npm run flock:monitor:server & npm run flock:monitor:dev",
-    "electron:dev": "electron electron/main.js",
+    "electron:dev": "cd monitor && npm run electron:dev",
+    "electron:compose": "cd monitor && npm run electron:compose",
     "electron:build": "npm run flock:monitor:build && electron-builder",
     "flock:shared": "ls -la shared/agents/ && ls -la shared/logs/",
     "flock:cli-monitor": "while true; do clear; docker ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'; echo; docker stats --no-stream agent-1 agent-2 agent-3 nats 2>/dev/null || true; sleep 2; done",
@@ -64,13 +65,13 @@
   "build": {
     "appId": "com.ai-flock.app",
     "files": [
-      "electron/**/*",
+      "monitor/electron/**/*",
       "monitor/**",
       "monitor-server/**",
       "package.json"
     ],
     "extraMetadata": {
-      "main": "electron/main.js"
+      "main": "monitor/electron/main.js"
     }
   }
 }

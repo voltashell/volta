@@ -5,6 +5,8 @@ export interface ContainerStat {
   NetIO: string;
   BlockIO: string;
   PIDs: string;
+  State?: string;
+  StatusText?: string;
 }
 
 export interface LogData {

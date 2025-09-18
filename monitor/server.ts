@@ -25,6 +25,8 @@ interface ContainerStat {
   NetIO: string;
   BlockIO: string;
   PIDs: string;
+  State?: string;
+  StatusText?: string;
 }
 
 interface LogData {
@@ -39,6 +41,9 @@ class MonitorServer {
   private stringCodec = StringCodec();
   private io: SocketIOServer | null = null;
   private ptys: Map<string, IPty> = new Map();
+  private readonly trackedContainers = ['agent-1', 'agent-2', 'agent-3', 'nats', 'monitor'];
+  private statsCollectionInProgress = false;
+  private statsInterval: NodeJS.Timeout | null = null;
 
   async initialize() {
     try {
@@ -232,6 +237,110 @@ class MonitorServer {
     this.startLogCollection();
   }
 
+  private async runCommand(command: string, args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+    return new Promise((resolve) => {
+      const child = spawn(command, args);
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      child.on('error', (error) => {
+        stderr += error.message;
+      });
+
+      child.on('close', (code) => {
+        resolve({ code: code ?? 0, stdout, stderr });
+      });
+    });
+  }
+
+  private async collectContainerStats() {
+    if (this.statsCollectionInProgress) return;
+    this.statsCollectionInProgress = true;
+
+    try {
+      const statsResult = await this.runCommand('docker', [
+        'stats',
+        '--no-stream',
+        '--format',
+        '{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDs}}'
+      ]);
+
+      const statsMap = new Map<string, ContainerStat>();
+
+      if (statsResult.code === 0) {
+        statsResult.stdout
+          .split('\n')
+          .map(line => line.trim())
+          .filter(Boolean)
+          .forEach(line => {
+            const [Name, CPUPerc, MemUsage, NetIO, BlockIO, PIDs] = line.split('\t');
+            if (this.trackedContainers.includes(Name)) {
+              statsMap.set(Name, { Name, CPUPerc, MemUsage, NetIO, BlockIO, PIDs });
+            }
+          });
+      } else if (statsResult.stderr.trim()) {
+        console.error('docker stats error:', statsResult.stderr.trim());
+      }
+
+      const statusResult = await this.runCommand('docker', [
+        'ps',
+        '--all',
+        '--format',
+        '{{.Names}}\t{{.State}}\t{{.Status}}'
+      ]);
+
+      const statusMap = new Map<string, { state: string; statusText: string }>();
+
+      if (statusResult.code === 0) {
+        statusResult.stdout
+          .split('\n')
+          .map(line => line.trim())
+          .filter(Boolean)
+          .forEach(line => {
+            const [name, state, statusText] = line.split('\t');
+            if (this.trackedContainers.includes(name)) {
+              statusMap.set(name, {
+                state: state?.toLowerCase() ?? 'unknown',
+                statusText: statusText ?? ''
+              });
+            }
+          });
+      } else if (statusResult.stderr.trim()) {
+        console.error('docker ps error:', statusResult.stderr.trim());
+      }
+
+      const combinedStats = this.trackedContainers.map(containerName => {
+        const baseStats = statsMap.get(containerName);
+        const statusInfo = statusMap.get(containerName);
+
+        return {
+          Name: containerName,
+          CPUPerc: baseStats?.CPUPerc ?? '0.00%',
+          MemUsage: baseStats?.MemUsage ?? '0B / 0B',
+          NetIO: baseStats?.NetIO ?? '0B / 0B',
+          BlockIO: baseStats?.BlockIO ?? '0B / 0B',
+          PIDs: baseStats?.PIDs ?? '0',
+          State: statusInfo?.state ?? (baseStats ? 'running' : 'unknown'),
+          StatusText: statusInfo?.statusText ?? (baseStats ? 'Up' : 'Unavailable')
+        };
+      });
+
+      this.io?.emit('stats', combinedStats);
+    } catch (error) {
+      console.error('Error collecting Docker stats:', error);
+    } finally {
+      this.statsCollectionInProgress = false;
+    }
+  }
+
   private executeDockerCommand(command: string, target: string, socket: any) {
     const dockerCommand = target === 'host' 
       ? command 
@@ -347,30 +456,12 @@ class MonitorServer {
   }
 
   private startStatsCollection() {
-    const collectStats = () => {
-      const child = spawn('docker', ['stats', '--no-stream', '--format', 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDs}}']);
-      let output = '';
-
-      child.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      child.on('close', (code) => {
-        if (code === 0) {
-          const lines = output.trim().split('\n').slice(1); // Skip header
-          const stats: ContainerStat[] = lines.map(line => {
-            const [Name, CPUPerc, MemUsage, NetIO, BlockIO, PIDs] = line.split('\t');
-            return { Name, CPUPerc, MemUsage, NetIO, BlockIO, PIDs };
-          }).filter(stat => ['agent-1', 'agent-2', 'agent-3', 'nats', 'monitor'].includes(stat.Name));
-
-          this.io?.emit('stats', stats);
-        }
-      });
+    const triggerCollection = () => {
+      void this.collectContainerStats();
     };
 
-    // Collect stats every 5 seconds
-    setInterval(collectStats, 5000);
-    collectStats(); // Initial collection
+    triggerCollection();
+    this.statsInterval = setInterval(triggerCollection, 5000);
   }
 
   private startLogCollection() {

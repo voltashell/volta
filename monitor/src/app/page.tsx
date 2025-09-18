@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 // import { useUser } from "@auth0/nextjs-auth0"
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,51 @@ import {
 	RestartResponse,
 	ErrorData
 } from '@/types/monitor';
+
+const TRACKED_CONTAINERS: ContainerName[] = ['agent-1', 'agent-2', 'agent-3', 'nats'];
+
+const parseCpuPercentage = (value?: string): number => {
+	if (!value) return 0;
+	const normalized = value.replace('%', '').trim();
+	const parsed = Number.parseFloat(normalized);
+	return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const parseDockerMemoryToMB = (value?: string): number => {
+	if (!value) return 0;
+	const [usedPart] = value.split('/') as [string?, ...string[]];
+	if (!usedPart) return 0;
+	const match = usedPart.trim().match(/([\d.]+)\s*([a-zA-Z]+)/);
+	if (!match) return 0;
+	const amount = Number.parseFloat(match[1]);
+	if (!Number.isFinite(amount)) return 0;
+	const unit = match[2].toUpperCase();
+	const unitMultipliers: Record<string, number> = {
+		B: 1 / (1024 * 1024),
+		KB: 1 / 1024,
+		KIB: 1 / 1024,
+		MB: 1,
+		MIB: 1,
+		GB: 1024,
+		GIB: 1024,
+		TB: 1024 * 1024,
+		TIB: 1024 * 1024
+	};
+
+	return amount * (unitMultipliers[unit] ?? 1);
+};
+
+const formatMemoryFromMB = (valueInMb: number): string => {
+	if (!Number.isFinite(valueInMb) || valueInMb <= 0) {
+		return '0 MB';
+	}
+	if (valueInMb >= 1024) {
+		return `${(valueInMb / 1024).toFixed(1)} GB`;
+	}
+	return valueInMb >= 10
+		? `${valueInMb.toFixed(0)} MB`
+		: `${valueInMb.toFixed(1)} MB`;
+};
 
 export default function Monitor() {
 	const router = useRouter();
@@ -142,30 +187,42 @@ export default function Monitor() {
 		}));
 	};
 
+	const statsByName = useMemo(() => {
+		const map: Record<string, ContainerStat> = {};
+		stats.forEach(stat => {
+			map[stat.Name] = stat;
+		});
+		return map;
+	}, [stats]);
+
 	const getStatForContainer = (containerName: ContainerName): ContainerStat | undefined => {
-		return stats.find(stat => stat.Name === containerName);
+		return statsByName[containerName];
 	};
 
-	const getTotalStats = () => {
-		if (stats.length === 0) return { containers: 0, cpu: 0, memory: 0 };
+	const totalStats = useMemo(() => {
+		let running = 0;
+		let cpuTotal = 0;
+		let memoryTotalMb = 0;
 
-		const cpu = stats.reduce((sum, stat) => {
-			return sum + parseFloat(stat.CPUPerc?.replace('%', '') || '0');
-		}, 0);
+		TRACKED_CONTAINERS.forEach(name => {
+			const stat = statsByName[name];
+			if (!stat) return;
 
-		const memory = stats.reduce((sum, stat) => {
-			const memStr = stat.MemUsage?.split(' / ')[0]?.replace(/[^\d.]/g, '') || '0';
-			return sum + parseFloat(memStr);
-		}, 0);
+			if (stat.State?.toLowerCase() === 'running') {
+				running += 1;
+			}
+
+			cpuTotal += parseCpuPercentage(stat.CPUPerc);
+			memoryTotalMb += parseDockerMemoryToMB(stat.MemUsage);
+		});
 
 		return {
-			containers: stats.length,
-			cpu: cpu.toFixed(1),
-			memory: memory.toFixed(0)
+			running,
+			total: TRACKED_CONTAINERS.length,
+			cpu: Number.parseFloat(cpuTotal.toFixed(1)),
+			memoryMb: memoryTotalMb
 		};
-	};
-
-	const totalStats = getTotalStats();
+	}, [statsByName]);
 
 
 	return (
@@ -192,15 +249,15 @@ export default function Monitor() {
 							<div className="flex space-x-6">
 								<div className="text-center">
 									<div className="text-gray-400">Containers</div>
-									<div className="text-green-400 font-bold">{totalStats.containers}</div>
+									<div className="text-green-400 font-bold">{`${totalStats.running}/${totalStats.total}`}</div>
 								</div>
 								<div className="text-center">
 									<div className="text-gray-400">CPU</div>
-									<div className="text-green-400 font-bold">{totalStats.cpu}%</div>
+									<div className="text-green-400 font-bold">{`${totalStats.cpu.toFixed(1)}%`}</div>
 								</div>
 								<div className="text-center">
 									<div className="text-gray-400">Memory</div>
-									<div className="text-green-400 font-bold">{totalStats.memory}MB</div>
+									<div className="text-green-400 font-bold">{formatMemoryFromMB(totalStats.memoryMb)}</div>
 								</div>
 							</div>
 							{/* <span className="text-green-400">{user?.name}</span>
@@ -217,7 +274,7 @@ export default function Monitor() {
 					<div className="grid grid-cols-2 grid-rows-2 gap-px bg-gray-600 flex-1 overflow-hidden">
 						<ContainerWindow
 							name="agent-1"
-							displayName="Agent 1"
+							displayName="Richard"
 							logs={logs['agent-1']}
 							commandResults={commandResults['agent-1']}
 							stats={getStatForContainer('agent-1')}
@@ -228,7 +285,7 @@ export default function Monitor() {
 						/>
 						<ContainerWindow
 							name="agent-2"
-							displayName="Agent 2"
+							displayName="Dinesh"
 							logs={logs['agent-2']}
 							commandResults={commandResults['agent-2']}
 							stats={getStatForContainer('agent-2')}
@@ -239,7 +296,7 @@ export default function Monitor() {
 						/>
 						<ContainerWindow
 							name="agent-3"
-							displayName="Agent 3"
+							displayName="Gilfoyle"
 							logs={logs['agent-3']}
 							commandResults={commandResults['agent-3']}
 							stats={getStatForContainer('agent-3')}

@@ -104,6 +104,53 @@ export default function ContainerWindow({
     }
   };
 
+  const getStatusInfo = (stat?: ContainerStat) => {
+    if (!stat) {
+      return {
+        label: 'Offline',
+        detail: '',
+        color: 'text-red-400'
+      };
+    }
+
+    const state = stat.State?.toLowerCase();
+    const detail = stat.StatusText?.trim() ?? '';
+
+    switch (state) {
+      case 'running':
+        return { label: 'Running', detail, color: 'text-green-400' };
+      case 'restarting':
+        return { label: 'Restarting', detail, color: 'text-yellow-400' };
+      case 'paused':
+        return { label: 'Paused', detail, color: 'text-yellow-400' };
+      case 'exited':
+      case 'dead':
+      case 'removing':
+        return { label: 'Stopped', detail, color: 'text-red-400' };
+      default: {
+        if (!state) {
+          return { label: 'Unknown', detail, color: 'text-yellow-400' };
+        }
+        const formatted = state.charAt(0).toUpperCase() + state.slice(1);
+        return { label: formatted, detail, color: 'text-yellow-400' };
+      }
+    }
+  };
+
+  const formatCpu = (stat?: ContainerStat) => {
+    const value = stat?.CPUPerc?.trim();
+    return value && value.length > 0 ? value : '--';
+  };
+
+  const formatMemory = (stat?: ContainerStat) => {
+    const value = stat?.MemUsage?.trim();
+    return value && value.length > 0 ? value.replace(/\s+/g, ' ') : '--';
+  };
+
+  const statusInfo = getStatusInfo(stats);
+  const cpuDisplay = formatCpu(stats);
+  const memoryDisplay = formatMemory(stats);
+
   return (
     <div className={`bg-gray-900 flex flex-col overflow-hidden ${className}`}>
       {/* Header */}
@@ -153,15 +200,12 @@ export default function ContainerWindow({
 
       {/* Status */}
       <div className="px-3 py-1 border-b border-gray-600 text-xs">
-        {stats ? (
-          <div className="text-gray-400">
-            Status: <span className="text-green-400">Running</span>
-            {' | '}CPU: {stats.CPUPerc || '0%'}
-            {' | '}Memory: {stats.MemUsage || '0B / 0B'}
-          </div>
-        ) : (
-          <div className="text-gray-400">Status: <span className="text-red-400">Unknown</span></div>
-        )}
+        <div className="text-gray-400">
+          Status: <span className={statusInfo.color}>{statusInfo.label}</span>
+          {statusInfo.detail ? ` (${statusInfo.detail})` : ''}
+          {' | '}CPU: {cpuDisplay}
+          {' | '}Memory: {memoryDisplay}
+        </div>
       </div>
 
       {/* Content Area */}
